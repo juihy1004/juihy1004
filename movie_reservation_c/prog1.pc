@@ -1,0 +1,2967 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sqlda.h>
+#include <sqlcpr.h>
+#include <memory.h>
+
+/* 포함부 위치 이동*/
+EXEC SQL INCLUDE SQLCA;
+
+/* oraca를 include */
+EXEC SQL INCLUDE oraca;
+/* oraca를 enable */
+EXEC ORACLE OPTION (ORACA=YES);
+
+EXEC ORACLE OPTION (RELEASE_CURSOR=YES);
+
+EXEC SQL BEGIN DECLARE SECTION;
+
+#define id_length 8
+#define array_length 5
+/* 다른 접속 방법*/
+char *username = "s13011017";
+char *password = "0321541";
+
+char *sqluser1;
+char *sqluser2;
+
+char *sqlreserv;
+char *sqlbuystore;
+char *sqlpay;
+
+char *sqlscreen;
+
+char *sqleditr;
+
+char input_id[30];
+char input_pw[30];
+
+char input_s_date[5];
+
+char myCard[17];
+
+char input_search_text[60];
+char input_search_t[60];
+
+char input_nameOfMovie[61];
+char input_director[31];
+char input_mainActor1[31];
+char input_mainActor2[31];
+char input_movieGradeM[9];
+
+char input_numberOfSeat[3];
+char input_phone[12];
+char input_SDATE[5];
+
+char input_movieTime[5];
+char input_cinemaNumber[3];
+
+char input_moviePrice[5];
+char input_remainSeat[3];
+
+int scr_num;
+
+struct {
+   char cus_id[array_length][id_length];
+   char cus_pw[array_length][13];
+   char cus_name[array_length][11];
+   char cus_birth[array_length][11];
+   char cus_phone[array_length][12];
+   char cus_grade[array_length][10];
+   char cus_have_coupon[array_length][41]; 
+   char cus_card_num[array_length][17];
+   int cus_acc_price[array_length];
+} customer_rec;
+
+
+struct {
+   char card_num[array_length][17];
+   char cardCompany[array_length][21];
+   char CVC[array_length][4];
+   char cardExpiryDate[array_length][5]; 
+} card_info_rec;
+
+struct {
+   int rcode[array_length];
+   char rDate[array_length][5];
+   char RID[array_length][9];
+   char RMovieName[array_length][61];
+   char RMovieTime[array_length][5];
+   char RPlex[array_length][3];
+   int reservationPrice[array_length];
+} reservation_rec;
+
+struct {
+   char nameOfMovie[array_length][61];
+   char director[array_length][31];
+   char mainActor1[array_length][31];
+   char mainActor2[array_length][31];
+   char movieGradeM[array_length][9];
+} movie_rec;
+
+struct {
+   char paycode[array_length][11];
+   char pDate[array_length][5];
+   char PAID[array_length][9];
+   int PPurchasePrice[array_length];
+   int PreservationPrice[array_length];
+   char PcouponName[array_length][41];
+   int subPrice[array_length];
+   int sumPrice[array_length];
+} payment_rec;
+
+struct {
+   int scode[array_length];
+   char sDate[array_length][5];
+   char movieName[array_length][61];
+   char movieTime[array_length][5];
+   char plex[array_length][3];
+   char movieGradeS[array_length][9];
+   int moviePrice[array_length];
+   int remainSeat[array_length];
+} screen_rec;
+
+struct {
+   int pcode[array_length];
+   char psDate[array_length][5];
+   char PID[array_length][9];
+   char PMenuName[array_length][21];
+   int purchasePrice[array_length];
+} purchase_store_rec;
+
+struct {
+   char movieName[array_length][61];
+   int acc_num[array_length];
+} count_m_name_rec;
+
+struct {
+    char accDate[array_length][5];
+    int acc_sum_price[array_length];
+} acc_date_rec;
+
+
+int f_reserv_code;
+
+struct {
+   char r_sDate[5];
+   char r_movieName[61];
+   char r_movieTime[5];
+   char r_plex[3];
+   int r_moviePrice;
+   } f_r_rec;
+
+int f_purc_code;
+
+int input_r_n;
+int input_p_n;
+int ch_p_n;
+
+struct {
+   char maneger_id[array_length][30];
+   char maneger_pw[array_length][30];
+} maneger_rec; //
+
+struct {
+   char cinema_num[array_length][3];
+   int cinema_seat[array_length];
+} cinema_rec;//
+
+struct {
+   char lev_cus_name[array_length][11];
+   int min_acc_price[array_length];
+} lev_cus_rec;//
+
+struct {
+   char level_MovieName[array_length][9];
+   char minAge[array_length][3];
+} level_movie_rec;//
+
+struct {
+   int reservationMoney[array_length];
+   char startTime[array_length][5];
+} price_reserv_rec;//
+
+
+struct {
+   char menuName[array_length][21];
+   int menuPrice[array_length];
+} store_rec;//
+
+struct {
+   char couponName[array_length][41];
+   int salePrice[array_length];
+   char couponExpiryDate[array_length][11];
+} coupon_info_rec;//
+
+
+
+EXEC SQL END DECLARE SECTION;
+
+
+void sql_error(char *msg)
+{
+    EXEC SQL WHENEVER SQLERROR CONTINUE;
+
+    printf("\n%s", msg);
+    printf("\n% .70s \n", sqlca.sqlerrm.sqlerrmc);
+
+    EXEC SQL ROLLBACK WORK RELEASE;
+    exit(EXIT_FAILURE);
+} //에러발생시 메세지출력후 종료함수
+
+
+void customer_input();//회원가임 함수
+
+void cus_print_rows(int n); //customer 테이블 출력 함수
+void reservation_print_rows(int n); //reservation 테이블 출력함수
+void movie_print_rows(int n); // movie 테이블 출력함수
+void payment_print_rows(int n); // payment 테이블 출력함수
+void screen_print_rows(int n); // screen 테이블 출력함수
+void purchase_store_print_rows(int n); // purchaseOfStore 테이블 출력함수
+
+void coupon_info_print_rows(int n); // informationOfCoupon 테이블 출력함수
+void store_print_rows(int n); // store 테이블 출력함수
+void maneger_print_row(int n); // manegerInfo 테이블 출력함수
+void cinema_print_rows(int n); // cinema 테이블 출력함수
+void lev_cus_print_rows(int n); // levelOfCustomer 테이블 출력함수
+void card_info_print_rows(int n); // cardInformation 테이블 출력함수
+void level_movie_print_rows(int n); // levelOfMovie 테이블 출력함수
+void price_reserv_print_rows(int n); // priceOfReservation 테이블 출력함수  
+
+
+void c_p_f(int i,int num_ret); //관리자, 사용자모드에서 사용하는 customer 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void cinema_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 cinema 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void l_c_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 levelOfCustomer 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void c_i_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 cardInformation 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void m_l_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 levelOfMovie 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void p_r_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 priceOfReservation 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void secr_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 screen 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void store_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 store 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void reserv_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 reservation 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void coupon_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 informationOfCoupon 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void purch_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 purchaseOfStore 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void pay_p_p_r(int i, int num_ret); //관리자, 사용자모드에서 사용하는 payment 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void m_p_p_f(int i, int num_ret); //관리자, 사용자모드에서 사용하는 movie 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+void m_p_r_f(int i, int num_ret); //관리자모드에서 사용하는 manegerInfo 테이블 DATA를 모두 보여줄 때 사용하는 함수 
+
+
+void cus_reserv_p_f(int i, int num_ret);//예매번호로 해당 예매 테이블 데이터를 검색하는 함수
+void s_p_f(int i, int num_ret); // 날짜로 상영정보를 검색하는 함수
+void cus_pay_p_p_r(int i, int num_ret); // 로그인한 아이디의 결제내역을 검색하는 함수
+void search_by_reserv_num(int i, int num_ret); // 예매번호로 해당 예매 테이블 데이터를 검색하는 함수
+void cus_m_p_p_f(int i, int num_ret); //영화이름으로 해당 영화 정보를 검색하는 함수
+void level_search_cus_p(int i, int num_ret); //고객 등급으로 해당 등급의 고객들의 정보를 검색하는 함수
+void name_search_cus_p(int i,int num_ret); //고객이름으로 해당 이름 고객의 정보를 검색하는 함수
+void pnum_search_screen_p(int i, int num_ret); //상영관 번호로 해당 상영관의 상영정보를 검색하는 함수
+void search_by_reserv_date(int i, int num_ret); //날짜로 해당 날짜의 예매정보를 검색하는 함수
+void date_search_purch_p(int i, int num_ret); // 날짜로 해당 날짜의 매점 구매 정보를 검색하는 함수
+void date_search_pay_p(int i, int num_ret); // 날짜로 해당 날짜의 구매 내역 정보를 검색하는 함수
+void name_search_purc(int i, int num_ret); // 로그인한 고객아이디로 매점 구매 정보를 검색하는 함수
+
+void name_acc_count_p(int i,int num_ret); // group by 를 사용해 해당 영화를 예매한 누적고객 수를 검색하는 함수 
+void acc_print_rows(int n); // name_acc_count_p함수에서 호출되어 출력하는 함수
+
+void day_acc_price_p_rows(int n); // day_acc_price_p 함수에서 호출되어 해당 검색 결과를 출력하는 함수
+void day_acc_price_p(int i, int num_ret); // group by를 이용해 날짜로 해당 날짜의 누적 금액을 검색하는 함수
+
+
+void not_reserv_cus(int i,int num_ret); // 내포질의를 이용해 reservation 테이블의 데이터가 없는 고객을 검색, 출력
+void cus_not_reserv_movie(int i, int num_ret); // 내포 질의를 검색해 로그인한 고객이 보지않은 영화를 검색, 출력
+void reserv_fun(int i, int num_ret);// 예매기능을 실행하는 함수
+
+char* itoa(int num, char *str); //숫자를 문자열로 타입을 변경하는 함수
+char* rtrim(char* s); // 문자열의 우측 공백을 제거하는 함수 - 변수저장시에 우측 공백제거를 위해
+void insert_pay(int cn, int reservp, char *chaprice); // 결제테이블에 데이터를 저장하는 함수
+char *replaceAll(char *s, const char *olds, const char *news); //olds문자열을 new 문자열로 변경하는 함수
+
+void edit_cus(); //해당 고객의 customer 테이블의 휴대폰 번호 데이터를 수정하는 함수
+void edit_movie(); // 영화이름을 입력받아 movie 테이블의 기본키를 제외한 데이터를 수정하는 함수
+void edit_cinema(); // 상영관 번호를 입력받아 cinema 테이블의 좌석수 데이터를 수정하는 함수
+void movie_input(); // 새로운 영화 데이터를 movie 테이블에 삽입하는 함수
+void screen_input(); // 새로운 상영 데이터를 screen 테이블에 삽입하는 함수
+void edit_screen(); // 상영 코드를 입력받아 해당 튜플의 남은 좌석수를 수정하는 함수
+
+void edit_reserv(); // 예매 번호를 입력받은 뒤 상영 번호를 입력받아 예매 테이블의 테이터를 변경. 수정하는 함수
+
+void clear_table(); //DROP TABLE 기능을 실행하는 함수
+void create_table(); // CREATE TABLE 기능을 실행하는 함수
+void insert_sample(); // TABLE에 샘플 데이터를 삽입하는 함수
+
+void main()
+{
+    int num_ret,i;
+    int log_num,pw_num;
+    int access_num;
+    int state_num;
+    int choice_n;
+
+    num_ret = 0;
+    i = 0;
+    log_num=0;
+    pw_num=0;
+    state_num = 0;
+
+    EXEC SQL WHENEVER SQLERROR DO sql_error("Connect error:");
+
+    EXEC SQL CONNECT :username IDENTIFIED BY :password;
+    printf("\nConnected to ORACLE as user : %s\n",username);
+      /*오라클 접속*/
+
+    printf("1.회원가입 / 2.로그인 :"); 
+    scanf("%d",&choice_n);// 회원 가입인지 로그인인지 입력받는다.
+    if(choice_n==1){
+        customer_input(); // 1을 입력받으면 회원가입 함수를 실행한다.
+    }
+    else if(choice_n==2){
+
+   for(;;){
+      printf("아이디를 입력하세요 : ");
+      scanf("%s", input_id);
+
+      EXEC SQL 
+         SELECT * FROM manegerInfo WHERE manegerID = :input_id;
+
+      if(sqlca.sqlcode==0){
+         printf("관리자 아이디를 확인하였습니다.\n 관리자 로그인 모드로 진입합니다.\n");
+         for(;;){
+            printf("관리자 비밀번호를 입력하세요 : ");
+            scanf("%s",input_pw);
+            EXEC SQL
+               SELECT * FROM manegerInfo WHERE manegerID = :input_id AND manegerPW = :input_pw;
+            if(sqlca.sqlcode==0){
+               printf("관리자 비밀번호가 확인되었습니다\n");
+               printf("관리자 권한으로 접속합니다.\n");
+               access_num = 99;
+               break;
+            }
+            else {
+               pw_num++;
+               printf("비밀번호 %d회 불일치(5회시 종료)\n",pw_num);
+               if(pw_num==5) exit(1);
+            }
+         }
+         break;
+      }
+      else {
+         printf("사용자 로그인 모드\n");
+            EXEC SQL
+               SELECT * FROM customer WHERE ID =: input_id;
+            if(sqlca.sqlcode==0){
+               printf("사용자 아이디가 확인되었습니다.\n");
+               for(;;){
+                  printf("사용자 비밀번호를 입력하세요 : ");
+                  scanf("%s",input_pw);
+                  EXEC SQL 
+                     SELECT * FROM customer WHERE ID =: input_id AND PW =: input_pw;
+                  if(sqlca.sqlcode==0){
+                     printf("유저 로그인에 성공하였습니다.\n");
+                     access_num=1;
+                     break;
+                  }
+                  else{
+                     pw_num++;
+                     printf("비밀번호 %d회 불일치(5회시 종료)\n",pw_num);
+                     if(pw_num==5) exit(1);
+                  }
+               }
+               break;
+            }
+            else{
+               log_num++;
+               printf("%d회 실패(5회실패시 종료)\n",log_num);
+               if(log_num==5) exit(1);
+            }
+      }
+   }
+
+   if(access_num == 1){
+      printf("사용자\n"); 
+      printf("1. 사용 테이블 보기\n2. 자신의 고객정보 보기\n3. 카드정보조회\n4. 예매내역보기\n5.영화검색하기\n6. 예매번호로 검색하기\n7. 결제정보조회 \n8. 상영정보조회\n9. 본적없는 영화 정보\n10.예매하기\n11. 핸드폰 번호 수정\n12.예매 삭제\n13.예매 수정 : ");
+      scanf("%d",&choice_n);
+
+      switch(choice_n){
+         case 1:   printf("테이블을 보시겠습니까(1.yes/2.no)?");
+               scanf("%d",&state_num);
+               if(state_num == 1){
+                  c_p_f(i,num_ret);
+                  cinema_p_f(i, num_ret);   
+                  l_c_p_f(i, num_ret);
+                  c_i_p_f(i, num_ret);
+                  m_l_p_f(i, num_ret);
+                  p_r_p_f(i, num_ret);
+                  secr_p_f(i, num_ret);
+                  store_p_f(i, num_ret);
+                  reserv_p_f(i, num_ret);
+                  coupon_p_f(i, num_ret);
+                  purch_p_f(i, num_ret);
+                  pay_p_p_r(i, num_ret);
+                  m_p_p_f(i, num_ret);
+                  
+               }
+               else printf("테이블 보기를 취소하였습니다.\n");
+               break;
+         case 2: 
+               printf("사용자 비밀번호를 입력하세요 :");
+               scanf("%s",input_pw);
+
+               EXEC SQL 
+                  SELECT * FROM customer WHERE ID =:input_id AND PW =:input_pw;
+
+               if(sqlca.sqlcode==0){
+               EXEC SQL DECLARE find_c_c CURSOR FOR
+               SELECT ID,PW,name,birth,phone,customerOfGrade,haveCoupon,cardNumber,accumulationPrice FROM customer WHERE ID =:input_id AND PW =:input_pw;
+               EXEC SQL OPEN find_c_c;
+
+               EXEC SQL FETCH find_c_c INTO :customer_rec;
+
+               printf("ID      PW            name   birth      phonenum   grade      cardnumber       coupon                         accuPrice\n");
+               printf("--------------------------------------------------------------------------------------------------------\n");
+               printf("%s %s %s %s %s %s %s %s %d\n",customer_rec.cus_id,
+               customer_rec.cus_pw,customer_rec.cus_name,
+               customer_rec.cus_birth,customer_rec.cus_phone,customer_rec.cus_grade,
+               customer_rec.cus_card_num,customer_rec.cus_have_coupon,
+               customer_rec.cus_acc_price[0]);
+               }
+               else printf("비밀번호가 다릅니다. 프로그램을 종료합니다.\n");
+               break;
+
+         case 3: printf("카드정보조회\n");
+               printf("사용자 비밀번호를 입력하세요 : ");
+               scanf("%s",input_pw);
+
+               EXEC SQL 
+                  SELECT cardNumber INTO :myCard FROM customer WHERE ID =:input_id AND PW = :input_pw;
+
+               printf("%s\n",myCard);
+
+               if(sqlca.sqlcode==0){
+                  printf("비밀번호 확인\n");
+                  EXEC SQL DECLARE find_card_n CURSOR FOR
+                  SELECT numberCard, cardCompany, CVC, cardExpiryDate FROM cardInformation WHERE numberCard =: myCard;
+                  EXEC SQL OPEN find_card_n;
+
+                  EXEC SQL FETCH find_card_n INTO :card_info_rec;
+
+                  printf("number           Company           CVC  ExpiryDate");
+                  printf("\n----------------------------------------------------\n");
+                  printf("%s %s %s %s\n",card_info_rec.card_num,card_info_rec.cardCompany,card_info_rec.CVC,card_info_rec.cardExpiryDate);
+               }
+               else {printf("비밀번호가 다릅니다. 프로그램을 종료합니다.\n");}
+               break;
+         case 4: printf("예매내역조회\n");
+               printf("사용자 비밀번호를 입력하세요 : ");
+               scanf("%s",input_pw);
+
+               EXEC SQL 
+                  SELECT cardNumber INTO :myCard FROM customer WHERE ID =:input_id AND PW = :input_pw;
+
+               if(sqlca.sqlcode==0){
+                  printf("비밀번호확인\n");
+                  cus_reserv_p_f(i,num_ret);
+               }
+               else printf("비밀번호가 다릅니다. 프로그램을 종료합니다.\n");
+               break;
+               
+         case 5: printf("영화정보조회\n");
+         
+               printf("영화 제목을 입력하세요(띄어쓰기는 '_'로 입력) : ");
+               scanf("%s",input_search_text);
+               printf("%s\n",input_search_text);
+
+               EXEC SQL
+                  SELECT * FROM movie WHERE nameOfMovie = :input_search_text;
+
+               if(sqlca.sqlcode==0){
+                  printf("영화정보출력\n");
+                  cus_m_p_p_f(i,num_ret);
+               }
+               else printf("해당 영화가 없습니다.\n");
+               break;
+
+         case 6: printf("예매번호를 입력하세요 : ");
+               scanf("%s",input_search_text);
+               printf("%s\n",input_search_text);
+
+               EXEC SQL
+                  SELECT * FROM reservation WHERE Rcode = :input_search_text;
+
+               if(sqlca.sqlcode==0){
+                  printf("해당 예매 정보\n");
+                  search_by_reserv_num(i,num_ret);
+               }
+               else printf("잘못된 예매번호\n");
+               break;
+
+         case 7: printf("결제 내역 조회\n");
+               printf("비밀번호를 입력하세요 :");
+               scanf("%s",input_pw);
+
+               EXEC SQL 
+                  SELECT * FROM customer WHERE ID =:input_id AND PW =:input_pw;
+
+               if(sqlca.sqlcode==0){
+                  cus_pay_p_p_r(i,num_ret);
+               }
+               else printf("비밀번호가 다릅니다. 프로그램을 종료합니다.\n");
+               break;
+         case 8: printf("상영정보조회\n");
+               printf("날짜를 입력하세요(예-3월28일 -> 0328) : ");
+               scanf("%s",input_s_date); 
+
+               s_p_f(i,num_ret);
+               break;
+
+         case 9: printf("본적없는 영화 정보\n");
+                cus_not_reserv_movie(i,num_ret);
+
+                break;
+         case 10: printf("예매하기\n");
+                  reserv_fun(i, num_ret);
+
+                  break;
+
+         case 11 :  printf("고객정보 수정하기\n");
+                    printf("비밀번호를 입력해주세요 : ");
+                    scanf("%s",input_pw);
+                
+
+                    EXEC SQL
+                      SELECT * FROM customer WHERE ID =:input_id AND PW =:input_pw; 
+
+                    if(sqlca.sqlcode==0){
+                        edit_cus();
+                    }
+                    else printf("잘못된 입력입니다.\n");
+
+                    break;
+
+         case 12 : printf("예매정보 삭제하기\n ");
+
+
+                  printf("예매코드를 입력하세요 : ");
+                  scanf("%s",input_search_text);
+                 
+
+                   EXEC SQL
+                  DELETE FROM reservation WHERE Rcode =:input_search_text;
+
+
+                  if(sqlca.sqlcode==0){
+                        printf("해당 예매 정보 삭제\n");
+                    }
+                    else printf("잘못된 입력입니다.\n");
+                    break; 
+
+         case 13 : printf("예매정보 수정\n");
+                  edit_reserv();
+                  break;
+
+
+      }
+   }
+
+   else if(access_num == 99)
+    {    
+        printf("관리자\n");
+         printf("1. 사용 테이블 보기\n2. 테이블 초기화\n3. 상영정보 입력\n4. 등급별 고객정보 검색 \n5.고객 이름 검색\n6. 상영관 번호로 상영정보 검색 \n7. 날짜로 예매정보 검색\n8. 날짜로 구매정보 검색\n9. 날짜로 결제 정보 검색\n10. 영화이름으로 누적고객 검색\n11. 고객 아이디로 매점 구매정보 검색\n12. 날짜로 일별 누적고객 검색\n13. 예매 내역없는 고객 검색 \n14. 영화내용 입력하기\n 15. 영화내용수정하기\n16. 상영관 정보 입력하기\n17. 상영관정보 수정하기\n18. 상영정보 삭제하기\n19. 상영정보 수정하기 : ");
+         scanf("%d",&choice_n);
+         printf("%d\n",choice_n);
+         switch(choice_n)
+         {
+            case 1:   printf("테이블을 보시겠습니까(1.yes/2.no)?");
+                  scanf("%d",&state_num);
+                  if(state_num == 1){
+                     c_p_f(i,num_ret);
+                     m_p_r_f(i,num_ret);
+                     cinema_p_f(i, num_ret);   
+                     l_c_p_f(i, num_ret);
+                     c_i_p_f(i, num_ret);
+                     m_l_p_f(i, num_ret);
+                     p_r_p_f(i, num_ret);
+                     secr_p_f(i, num_ret);
+                     store_p_f(i, num_ret);
+                     reserv_p_f(i, num_ret);
+                     coupon_p_f(i, num_ret);
+                     purch_p_f(i, num_ret);
+                     pay_p_p_r(i, num_ret);
+                     m_p_p_f(i, num_ret);
+                     
+                  }
+                  else printf("테이블 보기를 취소하였습니다.\n");
+                   break;
+
+            case 2: printf("테이블을 초기화하시겠습니까(1.yes/2.no)?");
+                  scanf("%d",&state_num);
+                  if(state_num ==1){
+                  printf("테이블삭제 중...\n");
+                  clear_table();
+                  printf("테이블생성 중...\n");
+                  create_table();
+                  printf("샘플데이터삽입 중...\n");
+                  insert_sample();
+                  printf("테이블초기화완료.\n");
+                  }
+                  else {printf("프로그램을 종료합니다.\n");}
+                   break;
+            case 3: printf("상영정보입력\n ");
+                     screen_input();
+                     break;
+
+            case 4: printf("고객 등급별 출력\n");
+                  printf("고객 등급 입력 : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL
+                     SELECT * FROM levelOfCustomer WHERE levelName = :input_search_text;
+
+                  if(sqlca.sqlcode==0){
+                     level_search_cus_p(i,num_ret);
+                  }
+                  else printf("잘못된 고객등급\n");
+
+                  break;
+
+            case 5: printf("고객 이름 검색\n");
+                  printf("고객 이름 : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL
+                     SELECT * FROM customer WHERE name = :input_search_text;
+
+                  if(sqlca.sqlcode==0){
+                     name_search_cus_p(i,num_ret);
+                  }
+                  else printf("데이터에 없는 이름\n");
+
+                  break;
+
+            case 6: printf("상영관 번호로 상영정보검색\n");
+                  printf("상영관 번호 입력 : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL
+                     SELECT * FROM cinema WHERE cinemaNumber = :input_search_text;
+
+                  if(sqlca.sqlcode==0){
+                     pnum_search_screen_p(i,num_ret);
+                  }
+                  else printf("잘못된 상영관 번호\n");
+                  break;
+
+            case 7: printf("날짜로 예매정보 검색\n");
+                  printf("예매 날짜 입력 : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL
+                     SELECT DISTINCT RDATE FROM reservation WHERE RDATE = :input_search_text;
+
+                  if(sqlca.sqlcode==0){
+                     search_by_reserv_date(i,num_ret);
+                  }
+                  else printf("데이터에 없는 날짜\n");
+                  break;
+                  //문제
+
+            case 8: printf("날짜로 구매정보 검색\n");
+                  printf("구매 날짜 입력(mmdd) : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL
+                     SELECT DISTINCT PSDATE FROM purchaseOfStore WHERE PSDATE = :input_search_text;
+
+                  if(sqlca.sqlcode==0){
+                     date_search_purch_p(i,num_ret);
+                  }
+                  else printf("데이터에 없는 날짜\n");
+
+                  break;
+
+            case 9: printf("날짜로 결제점보 검색\n");
+                    printf("날짜(mmdd) : ");
+                    scanf("%s",input_s_date);
+
+                    EXEC SQL
+                        SELECT DISTINCT PDATE FROM payment WHERE PDATE = :input_s_date;
+
+                    if(sqlca.sqlcode == 0){
+                        date_search_pay_p(i,num_ret);
+                    }
+                    else printf("잘못된 날짜\n");
+
+                  break;
+
+            case 10:printf("영화이름으로 누적고객정보 검색\n");
+                  printf("영화이름(띄어쓰기는 '_'로 작성) : ");
+                  scanf("%s",input_search_text);
+
+                  EXEC SQL 
+                     SELECT DISTINCT RMovieName FROM reservation WHERE RMovieName = :input_search_text;
+
+                     printf("%s L\n",input_search_text);
+
+                  if(sqlca.sqlcode==0){
+                     name_acc_count_p(i,num_ret);
+                  }
+                  else printf("데이터에 없는 영화이름\n");
+
+                  break;
+
+            case 11:printf("고객 아이디로 구매정보 검색\n");
+                    printf("고객 아이디 : ");
+                    scanf("%s",input_search_text);
+
+                    EXEC SQL 
+                        SELECT DISTINCT PID FROM purchaseOfStore WHERE PID = :input_search_text;
+
+                    if(sqlca.sqlcode == 0){
+                        name_search_purc(i,num_ret);
+                    }
+                    else printf("잘못된 고객 아이디 \n");
+                  break;
+
+            case 12:printf("날짜로 일별누적금액 검색\n");
+                  printf("날짜(mmdd) : ");
+                  scanf("%s",input_s_date);
+
+                  EXEC SQL
+                     SELECT DISTINCT PDATE FROM payment WHERE PDATE = :input_s_date;
+
+                  if(sqlca.sqlcode==0){
+                     printf("있음\n");
+                     day_acc_price_p(i,num_ret);
+                  }
+                  else printf("없음\n");
+                  break;
+
+            case 13: printf("예매 내역없는 고객 조회\n");
+                     not_reserv_cus(i,num_ret);
+                     break;
+
+            case 14 : printf("영화 내용 입력하기\n");
+                     movie_input();
+                     break;
+                            
+            case 15 : printf("영화 정보 수정하기\n");
+                    printf("영화이름을 입력하세요 : ");
+                    scanf("%s",input_nameOfMovie);
+                
+
+                    EXEC SQL
+                      SELECT * FROM movie WHERE nameOfMovie =:input_nameOfMovie; 
+
+                    if(sqlca.sqlcode==0){
+                        edit_movie();
+                    }
+                    else printf("잘못된 입력입니다.\n");
+                    break;
+
+            case 16 : printf("상영관 정보 입력하기\n");
+                        printf("상영관 번호를 입력하세요 : ");
+                        scanf("%s",input_cinemaNumber);
+                        printf("상영관 좌석 수를 입력하세요 : ");
+                        scanf("%s",input_numberOfSeat);
+
+                    EXEC SQL
+                        INSERT INTO cinema(cinemaNumber,numberOfSeat) VALUES(:input_cinemaNumber,:input_numberOfSeat);
+
+
+                        if(sqlca.sqlcode==0){
+                            printf("싱영관 정보 입력 완료\n");}
+                            break;
+
+            case 17: printf("상영관 정보 수정하기\n");
+
+
+                    printf("상영관 번호를 입력하세요 : ");
+                         scanf("%s",input_cinemaNumber);
+
+                   EXEC SQL
+                       SELECT * FROM cinema WHERE cinemaNumber=:input_cinemaNumber;
+
+
+                    if(sqlca.sqlcode==0){
+                        edit_cinema();
+                    }
+                    else printf("잘못된 입력입니다.\n");
+                    break;
+
+
+
+            case 18: printf("상영정보 삭제하기\n");
+
+                  printf("상영코드를 입력하세요 : ");
+                  scanf("%s",input_search_text);
+                 
+
+               EXEC SQL
+                  DELETE FROM screen WHERE Scode =:input_search_text;
+
+
+               if(sqlca.sqlcode==0){
+                        printf("해당 상영 삭제\n");
+                    }
+                    else printf("잘못된 입력입니다.\n");
+                    break; 
+
+            case 19: printf("상영정보 수정하기\n");
+                        edit_screen();
+                   
+                    break;
+         }
+   }
+}
+   printf("\n프로그램 종료.\n\n\n");
+
+   EXEC SQL COMMIT WORK RELEASE;
+   exit(EXIT_SUCCESS);
+
+ 
+}
+
+void customer_input(){
+
+    char input_name[11];
+    char input_birth[11];
+    char input_phone[12];
+    char input_card_num[17];
+    char input_cardCompany[21];
+    char input_CVC[4];
+    char input_cardExpiryDate[5]; 
+
+    // 각 변수를 선언해준다.
+
+    sqluser1 = "INSERT INTO cardInformation VALUES ('회원cardnum','회원cardcomp','회원cvc','회원cardexp')";
+
+    sqluser2 = "INSERT INTO customer VALUES ('회원ID','회원PW','회원name','회원birth','회원phone','silver','없음','회원cardnumber',0)";
+    // INSERT 문을 IMMEDIATE로 실행하기 위해 값을 넣어준다.
+
+
+    printf("ID를 입력하세요(최대8자) : ");
+    scanf("%s",&input_id);
+    sqluser2 = replaceAll(sqluser2,"회원ID",input_id);
+
+    printf("PW를 입력하세요(최대12자) : ");
+    scanf("%s",&input_pw);
+    sqluser2 = replaceAll(sqluser2,"회원PW",input_pw);
+
+    printf("이름을 입력하세요 : ");
+    scanf("%s",&input_name);
+    sqluser2 = replaceAll(sqluser2,"회원name",input_name);
+
+    printf("생년월일을 입력하세요 (yyyy-mm-dd/ '-' 포함) :");
+    scanf("%s",&input_birth);
+    sqluser2 = replaceAll(sqluser2,"회원birth",input_birth);
+
+    printf("핸드폰 번호를 입력하세요 (11자/ - 제외) : ");
+    scanf("%s",&input_phone);
+    sqluser2 = replaceAll(sqluser2,"회원phone",input_phone);
+
+    printf("카드번호를 입력하세요 (-제외 16자) : ");
+    scanf("%s",&input_card_num);
+    sqluser2 = replaceAll(sqluser2,"회원cardnumber",input_card_num);
+    sqluser1 = replaceAll(sqluser1,"회원cardnum",input_card_num);
+    // customer 테이블에 삽입될 데이터들을 입력받고 replaceAll을 통해 변경시켜준다.
+      
+
+    printf("카드회사를 입력하세요 : ");
+    scanf("%s",&input_cardCompany);
+    sqluser1 = replaceAll(sqluser1,"회원cardcomp",input_cardCompany);
+
+    printf("CVC를 입력하세요(3자리) : ");
+    scanf("%s",&input_CVC);
+    sqluser1 = replaceAll(sqluser1,"회원cvc",input_CVC);
+
+    printf("카드 유효기간을 입력하세요(mmyy) : ");
+    scanf("%s",&input_cardExpiryDate);
+    sqluser1 = replaceAll(sqluser1,"회원cardexp",input_cardExpiryDate);
+    // cardInformation 테이블에 삽일될 데이터들을 입력받고 replaceAll을 통해 변경시켜준다.
+
+    EXEC SQL EXECUTE IMMEDIATE :sqluser1;
+    EXEC SQL EXECUTE IMMEDIATE :sqluser2;
+    // 값들을 모두 입력받으면 2개의 INSERT문을 실행시켜 준다.
+
+    if(sqlca.sqlcode==0){
+       printf("회원가입완료\n");
+    }
+}
+
+char *replaceAll(char *s, const char *olds, const char *news) //문자열3개를 입력받는다.
+{
+    char *result, *sr;
+    size_t i, count = 0;
+    size_t oldlen = strlen(olds); if (oldlen < 1) return s; //olds문자열의 길이를 저장한다.
+    size_t newlen = strlen(news); //news문자열의 길이를 저장한다.
+
+    if(newlen != oldlen){
+        for(i=0;s[i]!='\0';){
+            if(memcmp(&s[i], olds, oldlen)==0) count++, i += oldlen; //memcmp를 통해 해당 메모리 공간의 값끼리 빼서 비교한뒤, 반환값이 0이면 count++.i+= oldlen을 실행한다.
+            else i++;
+        }
+    }  
+    else i = strlen(s); // newlen = oldlen 이면 i에 s길이를 저장
+
+    result = (char *) malloc(i +1 + count * (newlen - oldlen)); //result를 i+1+count*(newlen-oldlen)의 크기로 메모리 할당해준다.
+    if(result == NULL) return NULL;
+
+    sr = result; 
+
+    while(*s){
+        if(memcmp(s ,olds, oldlen) == 0){ //memcmp를 이용
+            memcpy(sr, news, newlen); //memcpy를 통해 삽입정렬
+            sr+=newlen;
+            s +=oldlen;
+        }
+        else *sr++ = *s++;
+    }
+    *sr = '\0';
+
+    return result; // 문자열 result값을 반환한다.
+}
+
+
+void cus_print_rows(int n)
+{
+   int i;
+   printf("\n고객 테이블");
+   printf("\nid         pw             name        birth      phoneNum   grade        haveCoupon                           CadrNumber     accuPrice");
+   printf("\n--------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+   printf("%s   %s    %s     %s  %s %s  %s     %s     %d\n",customer_rec.cus_id[i],customer_rec.cus_pw[i],customer_rec.cus_name[i]
+         ,customer_rec.cus_birth[i],customer_rec.cus_phone[i],customer_rec.cus_grade[i],customer_rec.cus_have_coupon[i],customer_rec.cus_card_num[i],customer_rec.cus_acc_price[i]);
+}//출력함수
+
+void c_p_f(int i,int num_ret){
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   EXEC SQL DECLARE customer_c CURSOR FOR
+      SELECT ID,PW,name,birth,phone,customerOfGrade,haveCoupon,cardNumber,accumulationPrice FROM customer;
+   EXEC SQL OPEN customer_c;
+
+   for(;;)
+   {
+      EXEC SQL FETCH customer_c INTO : customer_rec;
+
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE customer_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void level_search_cus_p(int i,int num_ret){
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   EXEC SQL DECLARE lev_customer_c CURSOR FOR
+      SELECT ID,PW,name,birth,phone,customerOfGrade,haveCoupon,cardNumber,accumulationPrice FROM customer WHERE customerOfGrade = :input_search_text;
+   EXEC SQL OPEN lev_customer_c;
+
+   for(;;)
+   {
+      EXEC SQL FETCH lev_customer_c INTO : customer_rec;
+
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE lev_customer_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void name_search_cus_p(int i,int num_ret){
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   EXEC SQL DECLARE name_customer_c CURSOR FOR
+      SELECT ID,PW,name,birth,phone,customerOfGrade,haveCoupon,cardNumber,accumulationPrice FROM customer WHERE name = :input_search_text;
+   EXEC SQL OPEN name_customer_c;
+
+   for(;;)
+   {
+      EXEC SQL FETCH name_customer_c INTO : customer_rec;
+
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE name_customer_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void reservation_print_rows(int n)
+{
+   int i;
+   printf("\n예매 정보 테이블");
+   printf("\nRcode     RDATE RID         RMovieName                                  RMovieTime      RPlex     reservationPrice");
+   printf("\n--------------------------------------------------------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%d %s  %s  %s  %s         %s          %d\n",reservation_rec.rcode[i],reservation_rec.rDate[i],reservation_rec.RID[i],reservation_rec.RMovieName[i],reservation_rec.RMovieTime[i],reservation_rec.RPlex[i],reservation_rec.reservationPrice[i]);
+
+}
+
+void cus_reserv_p_f(int i, int num_ret){
+   EXEC SQL DECLARE cus_reservation_c CURSOR FOR
+      SELECT  Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation WHERE RID =: input_id;
+   EXEC SQL OPEN cus_reservation_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH cus_reservation_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE cus_reservation_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void search_by_reserv_num(int i, int num_ret){
+   EXEC SQL DECLARE search_reservation_c CURSOR FOR
+      SELECT Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation WHERE Rcode =: input_search_text;
+   EXEC SQL OPEN search_reservation_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH search_reservation_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE search_reservation_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void search_by_reserv_date(int i, int num_ret){
+
+   EXEC SQL DECLARE search_date_reservation_c CURSOR FOR
+      SELECT Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation WHERE RDATE =: input_search_text;
+   EXEC SQL OPEN search_date_reservation_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+
+      EXEC SQL FETCH search_date_reservation_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+
+        printf("c5\n");
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+   }
+
+   EXEC SQL CLOSE search_date_reservation_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void movie_print_rows(int n)
+{
+   int i;
+   printf("\n영화 정보 테이블");
+   printf("\nnameOfMovie                                            director                     mainActor1              mainActor2             movieGradeM");
+   printf("\n------------------------------------------------------------------------------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s %s  %s  %s  %s\n",movie_rec.nameOfMovie[i], movie_rec.director[i],movie_rec.mainActor1[i],movie_rec.mainActor2[i],movie_rec.movieGradeM[i]);
+}
+
+void cus_m_p_p_f(int i, int num_ret){
+   EXEC SQL DECLARE movie_c CURSOR FOR
+      SELECT nameOfMovie, director, mainActor1, mainActor2, movieGradeM 
+      FROM movie WHERE nameOfMovie = :input_search_text;
+   EXEC SQL OPEN movie_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH movie_c INTO : movie_rec;
+
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE movie_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void payment_print_rows(int n)
+{
+   int i;
+   printf("\n구매 정보 테이블");
+   printf("\npayCode   PDATE PAID   PPurchasePrice   PreservationPrice   PcouponName                     subPrice   sumPrice");
+   printf("\n-----------------------------------------------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %s %s  %d           %d             %s   %d   %d\n",payment_rec.paycode[i],payment_rec.pDate[i],payment_rec.PAID[i],payment_rec.PPurchasePrice[i],payment_rec.PreservationPrice[i],payment_rec.PcouponName[i],payment_rec.subPrice[i],payment_rec.sumPrice[i]);
+
+}
+
+void cus_pay_p_p_r(int i, int num_ret){
+   EXEC SQL DECLARE cus_payment_c CURSOR FOR
+      SELECT PPcode, PDATE, PAID, PPurchasePrice, PreservationPrice, PcouponName, subPrice, sumPrice FROM payment WHERE PAID = :input_id;
+   EXEC SQL OPEN cus_payment_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH cus_payment_c INTO : payment_rec;
+
+      payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE cus_payment_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void screen_print_rows(int n)
+{
+   int i;
+   printf("\n상영 정보 테이블");
+   printf("\nSCODE     SDATE movieName                                          movieTime  plex  movieGradeS  moviePrice remainSeat");
+   printf("\n------------------------------------------------------------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%d %s  %s    %s    %s  %s        %d       %d\n",screen_rec.scode[i],screen_rec.sDate[i],screen_rec.movieName[i],screen_rec.movieTime[i],screen_rec.plex[i],screen_rec.movieGradeS[i],screen_rec.moviePrice[i],screen_rec.remainSeat[i]);
+
+}
+
+void s_p_f(int i, int num_ret){
+   EXEC SQL DECLARE screen_c CURSOR FOR
+      SELECT Scode, SDATE, movieName, movieTime, plex, movieGradeS, moviePrice, remainSeat FROM screen WHERE SDATE = :input_s_date;
+   EXEC SQL OPEN screen_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH screen_c INTO : screen_rec;
+
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE screen_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void pnum_search_screen_p(int i, int num_ret){
+   EXEC SQL DECLARE pnum_screen_c CURSOR FOR
+      SELECT Scode, SDATE, movieName, movieTime, plex, movieGradeS, moviePrice, remainSeat FROM screen WHERE plex = :input_search_text;
+   EXEC SQL OPEN pnum_screen_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH pnum_screen_c INTO : screen_rec;
+
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE pnum_screen_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void date_search_purch_p(int i, int num_ret){
+   EXEC SQL DECLARE date_purchase_store_c CURSOR FOR
+      SELECT Pcode, PSDATE, PID, PMenuName, purchasePrice FROM purchaseOfStore WHERE PSDATE = :input_search_text;
+   EXEC SQL OPEN date_purchase_store_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH date_purchase_store_c INTO : purchase_store_rec;
+
+      purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE date_purchase_store_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void purchase_store_print_rows(int n)
+{
+   int i;
+   printf("\n매점 구매 정보 테이블");
+   printf("\n Purchasecode  PSDATE  PID    PMenuName    purchasePrice");
+   printf("\n-----------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%d %s   %s  %s %d\n",purchase_store_rec.pcode[i],purchase_store_rec.psDate[i],purchase_store_rec.PID[i],purchase_store_rec.PMenuName[i], purchase_store_rec.purchasePrice[i]
+      );
+
+}
+
+void name_acc_count_p(int i, int num_ret){
+   
+
+   EXEC SQL DECLARE acc_name_c CURSOR FOR 
+      SELECT RMovieName,count(*) FROM reservation GROUP BY RMovieName HAVING RMovieName = :input_search_text;
+   EXEC SQL OPEN acc_name_c;
+
+    EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH acc_name_c INTO : count_m_name_rec;
+
+      acc_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      acc_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      }
+
+   EXEC SQL CLOSE acc_name_c;
+}
+
+void acc_print_rows(int n)
+{
+   int i;
+   printf("\n영화 누적 고객");
+   printf("\n영화이름                                              관람 수 ");
+   printf("\n--------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %d\n",count_m_name_rec.movieName[i],count_m_name_rec.acc_num[i]);
+}
+
+void day_acc_price_p(int i, int num_ret){
+   
+
+   EXEC SQL DECLARE acc_date_c CURSOR FOR 
+      SELECT PDATE, SUM(sumPrice) FROM payment GROUP BY PDATE HAVING PDATE = :input_s_date;
+   EXEC SQL OPEN acc_date_c;
+
+    EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH acc_date_c INTO : acc_date_rec;
+
+      day_acc_price_p_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      day_acc_price_p_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      }
+
+   EXEC SQL CLOSE acc_date_c;
+}
+
+void day_acc_price_p_rows(int n)
+{
+   int i;
+   printf("\n일별 누적 금액");
+   printf("\n월일       누적 금액");
+   printf("\n---------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s         %d\n",acc_date_rec.accDate[i],acc_date_rec.acc_sum_price[i]);
+}
+
+void date_search_pay_p(int i,int num_ret){
+    
+    EXEC SQL DECLARE date_pay_c CURSOR FOR
+        SELECT PPcode, PDATE, PAID, PPurchasePrice, PreservationPrice, PcouponName, subPrice, sumPrice FROM payment WHERE PDATE = :input_s_date;
+    EXEC SQL OPEN date_pay_c;
+
+    EXEC SQL WHENEVER NOT FOUND DO break;
+
+    for(;;){
+        EXEC SQL FETCH date_pay_c INTO : payment_rec;
+
+        payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+        printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+        num_ret = sqlca.sqlerrd[2];
+   }
+
+    if((sqlca.sqlerrd[2] - num_ret) > 0){
+        payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+        printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+    EXEC SQL CLOSE date_pay_c;
+}
+
+void name_search_purc(int i, int num_ret){
+    
+    EXEC SQL DECLARE name_purc_c CURSOR FOR
+        SELECT Pcode, PSDATE, PID, PMenuName, purchasePrice FROM purchaseOfStore WHERE PID = :input_search_text;
+    EXEC SQL OPEN name_purc_c;
+
+    EXEC SQL WHENEVER NOT FOUND DO break;
+
+    for(;;){
+        EXEC SQL FETCH name_purc_c INTO : purchase_store_rec;
+
+        purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+        printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+        num_ret = sqlca.sqlerrd[2];
+   }
+
+    if((sqlca.sqlerrd[2] - num_ret) > 0){
+        purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+        printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+    EXEC SQL CLOSE name_purc_c;
+}
+
+void not_reserv_cus(int i, int num_ret){
+    //printf("예매 내역이 없는 고객\n");
+
+    EXEC SQL DECLARE not_reserv_c CURSOR FOR
+        SELECT ID,PW,name,birth,phone,customerOfGrade,haveCoupon,cardNumber,accumulationPrice FROM customer WHERE ID NOT IN(SELECT RID FROM reservation);
+    EXEC SQL OPEN not_reserv_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+    for(;;)
+   {
+      EXEC SQL FETCH not_reserv_c INTO : customer_rec;
+
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE not_reserv_c;
+}
+
+void cus_not_reserv_movie(int i, int num_ret){
+    EXEC SQL DECLARE not_cus_m_c CURSOR FOR
+        SELECT nameOfMovie, director, mainActor1, mainActor2, movieGradeM FROM movie WHERE nameOfMovie NOT IN (SELECT RMovieName FROM reservation, customer WHERE reservation.RID = customer.ID AND customer.ID = :input_id);
+    EXEC SQL OPEN not_cus_m_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+    for(;;)
+   {
+      EXEC SQL FETCH not_cus_m_c INTO : movie_rec;
+
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+    EXEC SQL CLOSE not_cus_m_c;
+}
+
+
+void level_movie_print_rows(int n)
+{
+   int i;
+   printf("\n영화등급 정보 테이블");
+   printf("\nlevel   minage");
+   printf("\n----------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %s\n",level_movie_rec.level_MovieName[i],level_movie_rec.minAge[i]);
+
+}
+
+void price_reserv_print_rows(int n)
+{
+   int i;
+   printf("\n예매금액 정보 테이블");
+   printf("\nreservationMoney   startTime");
+   printf("\n---------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%d                %s\n",price_reserv_rec.reservationMoney[i],price_reserv_rec.startTime[i]);
+
+}
+
+void card_info_print_rows(int n)
+{
+   int i;
+   printf("\n카드 정보 테이블");
+   printf("\ndirector           Company           CVC  ExpiryDate");
+   printf("\n----------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %s  %s  %s\n",card_info_rec.card_num[i],card_info_rec.cardCompany[i],card_info_rec.CVC[i],card_info_rec.cardExpiryDate[i]);
+
+}
+
+void lev_cus_print_rows(int n)
+{
+   int i;
+   printf("\n고객 등급 테이블");
+   printf("\nlevel    accprice");
+   printf("\n------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %d\n",lev_cus_rec.lev_cus_name[i],lev_cus_rec.min_acc_price[i]);
+}
+
+void store_print_rows(int n)
+{
+   int i;
+   printf("\n매점 정보 테이블");
+   printf("\nmenuName      menuPrice");
+   printf("\n-----------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %d\n",store_rec.menuName[i],store_rec.menuPrice[i]);
+
+}
+
+
+void cinema_print_rows(int n)
+{
+   int i;
+   printf("\n상영관 테이블");
+   printf("\nnum   seat");
+   printf("\n--------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s    %s\n",cinema_rec.cinema_num[i],cinema_rec.cinema_num[i]);
+}//상영관 테이블 출력함수
+
+void coupon_info_print_rows(int n)
+{
+   int i;
+   printf("\n쿠폰 정보 테이블");
+   printf("\ncouponName                              salePrice    couponExpiryDate");
+   printf("\n-----------------------------------------------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s  %d             %s\n",coupon_info_rec.couponName[i],coupon_info_rec.salePrice[i],coupon_info_rec.couponExpiryDate[i]);
+
+}
+
+void maneger_print_row(int n)
+{
+   int i;
+   printf("\n관리자 테이블");
+   printf("\nid                              pw");
+   printf("\n------------------------------------\n");
+
+   for(i=0;i<n;i++)
+      printf("%s %s\n",maneger_rec.maneger_id[i],maneger_rec.maneger_pw[i]);
+}
+
+void m_p_r_f(int i, int num_ret){
+   EXEC SQL DECLARE maneger_c CURSOR FOR
+      SELECT manegerID, manegerPW FROM manegerInfo;
+   EXEC SQL OPEN maneger_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+   
+      EXEC SQL FETCH maneger_c INTO : maneger_rec;
+
+      maneger_print_row(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      maneger_print_row(sqlca.sqlerrd[2] - num_ret);
+
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE maneger_c;
+   i=0;
+   num_ret = 0;
+}
+
+void cinema_p_f(int i, int num_ret){
+   EXEC SQL DECLARE cinema_c CURSOR FOR
+      SELECT cinemaNumber, numberOfSeat FROM cinema;
+   EXEC SQL OPEN cinema_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH cinema_c INTO : cinema_rec;
+
+      cinema_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      cinema_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   i=0;
+   num_ret=0;
+   EXEC SQL CLOSE cinema_c;
+}
+
+void l_c_p_f(int i, int num_ret){
+   EXEC SQL DECLARE level_cus_c CURSOR FOR
+      SELECT levelName, minaccumulationPrice FROM levelOfCustomer;
+   EXEC SQL OPEN level_cus_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH level_cus_c INTO : lev_cus_rec;
+
+      lev_cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      lev_cus_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE level_cus_c;
+   
+   i = 0;
+   num_ret = 0;
+}
+
+void c_i_p_f(int i, int num_ret){
+   EXEC SQL DECLARE card_info_c CURSOR FOR
+      SELECT numberCard, cardCompany, CVC, cardExpiryDate FROM cardInformation;
+   EXEC SQL OPEN card_info_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH card_info_c INTO : card_info_rec;
+
+      card_info_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      card_info_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE card_info_c;
+   i = 0;
+   num_ret = 0;
+}
+void m_l_p_f(int i, int num_ret){
+   EXEC SQL DECLARE level_movie_c CURSOR FOR
+      SELECT levelOfMovieName, minAge FROM levelOfMovie;
+   EXEC SQL OPEN level_movie_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH level_movie_c INTO : level_movie_rec;
+
+      level_movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      level_movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE level_movie_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void p_r_p_f(int i, int num_ret){
+   EXEC SQL DECLARE price_reserv_c CURSOR FOR
+      SELECT reservationMoney, startTime FROM priceOfReservation;
+   EXEC SQL OPEN price_reserv_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH price_reserv_c INTO : price_reserv_rec;
+
+      price_reserv_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      price_reserv_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE price_reserv_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void secr_p_f(int i, int num_ret){
+   EXEC SQL DECLARE screen_p_c CURSOR FOR
+      SELECT Scode, SDATE, movieName, movieTime, plex, movieGradeS, moviePrice, remainSeat FROM screen;
+   EXEC SQL OPEN screen_p_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH screen_p_c INTO : screen_rec;
+
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      screen_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE screen_p_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void store_p_f(int i, int num_ret){
+   EXEC SQL DECLARE store_c CURSOR FOR
+      SELECT menuName, menuPrice FROM store;
+   EXEC SQL OPEN store_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH store_c INTO : store_rec;
+
+      store_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      store_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE store_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void reserv_p_f(int i, int num_ret){
+   EXEC SQL DECLARE reservation_c CURSOR FOR
+      SELECT Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation;
+   EXEC SQL OPEN reservation_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH reservation_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE reservation_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void coupon_p_f(int i, int num_ret){
+   EXEC SQL DECLARE coupon_info_c CURSOR FOR
+      SELECT couponName, salePrice, couponExpiryDate FROM informationOfCoupon;
+   EXEC SQL OPEN coupon_info_c; 
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH coupon_info_c INTO : coupon_info_rec;
+
+      coupon_info_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      coupon_info_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE coupon_info_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void purch_p_f(int i, int num_ret){
+   EXEC SQL DECLARE purchase_store_c CURSOR FOR
+      SELECT Pcode,PSDATE ,PID, PMenuName, purchasePrice FROM purchaseOfStore;
+   EXEC SQL OPEN purchase_store_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH purchase_store_c INTO : purchase_store_rec;
+
+      purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      purchase_store_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE purchase_store_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void pay_p_p_r(int i, int num_ret){
+   EXEC SQL DECLARE payment_c CURSOR FOR
+      SELECT PPcode, PDATE, PAID, PPurchasePrice, PreservationPrice, PcouponName, subPrice, sumPrice FROM payment;
+   EXEC SQL OPEN payment_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH payment_c INTO : payment_rec;
+
+      payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      payment_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE payment_c;
+   i = 0;
+   num_ret = 0;
+}
+
+void m_p_p_f(int i, int num_ret){
+   EXEC SQL DECLARE movie_p_c CURSOR FOR
+      SELECT nameOfMovie, director, mainActor1, mainActor2, movieGradeM FROM movie;
+   EXEC SQL OPEN movie_p_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH movie_p_c INTO : movie_rec;
+
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      movie_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE movie_p_c;
+   i = 0;
+   num_ret = 0;
+}
+
+
+void edit_cus(){
+
+      
+
+
+    printf("변경할 전화번호를 입력해주세요 : ");
+                    scanf("%s",input_phone);
+
+   EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+        EXEC SQL
+            UPDATE customer SET phone=:input_phone WHERE ID=:input_id AND PW=:input_pw;
+
+}
+
+
+void edit_movie(){
+
+      
+   
+        printf("변경할 감독이름을 입력하세요 : ");
+        scanf("%s",input_director);
+        printf("변경할 주연배우 이름을 입력하세요 : ");
+        scanf("%s",input_mainActor1);
+        printf("변경할 주연배우 이름을 한번더 입력하세요 : ");
+        scanf("%s",input_mainActor2);
+        printf("변경할 등급을 입력하세요 : ");
+        scanf("%s",input_movieGradeM);
+
+        EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+        EXEC SQL
+                UPDATE movie SET director=:input_director, mainActor1=:input_mainActor1, mainActor2=:input_mainActor2, movieGradeM=:input_movieGradeM WHERE  nameOfMovie =:input_nameOfMovie ;
+}
+
+void edit_cinema(){
+
+        printf("변경할 좌석수를 입력하세요 : ");
+        scanf("%s",input_numberOfSeat);
+
+        EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+        EXEC SQL
+                UPDATE cinema SET numberOfSeat=:input_numberOfSeat WHERE cinemaNumber=:input_cinemaNumber;
+
+}
+
+void movie_input(){
+
+   
+
+    sqluser1 = "INSERT INTO movie VALUES ('영화name','감독name','배우name1','배우name2','영화grade')";
+
+
+    printf("영화이름을 입력하세요 : ");
+    scanf("%s",&input_nameOfMovie);
+    sqluser1 = replaceAll(sqluser1,"영화name",input_nameOfMovie);
+
+    printf("감독이름을 입력하세요 : ");
+    scanf("%s",&input_director);
+    sqluser1 = replaceAll(sqluser1,"감독name",input_director);
+
+    printf("주연배우 이름을 입력하세요 : ");
+    scanf("%s",&input_mainActor1);
+    sqluser1 = replaceAll(sqluser1,"배우name1",input_mainActor1);
+
+    printf("주연배우 이름을 한번더 입력하세요 :");
+    scanf("%s",&input_mainActor2);
+    sqluser1 = replaceAll(sqluser1,"배우name2",input_mainActor2);
+
+    printf("영화 등급을 입력하세요 : ");
+    scanf("%s",&input_movieGradeM);
+    sqluser1 = replaceAll(sqluser1,"영화grade",input_movieGradeM);
+
+    EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+
+    EXEC SQL EXECUTE IMMEDIATE :sqluser1;
+
+    if(sqlca.sqlcode==0){
+       printf("영화정보 등록 완료\n");
+    }
+}
+
+void screen_input(){ //
+
+   char tstr[128];
+   sqlscreen = "INSERT INTO screen VALUES (상영코드,상영date,'영화name',상영time,상영plex,'영화grade','영화price','남은seat')";
+
+   EXEC SQL DECLARE scr_cur CURSOR FOR
+      SELECT Scode FROM screen;
+   EXEC SQL OPEN scr_cur;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;){
+      EXEC SQL FETCH scr_cur INTO :scr_num;
+   }
+   EXEC SQL CLOSE scr_cur;
+
+   scr_num++;
+   // screen 테이블의 기본키인 Scode의 마지막값을 정수타입으로 저장하여 1더해준다.
+
+   itoa(scr_num, tstr);
+   // IMMEDIATE를 위해 형변환 시켜준다.
+
+    sqlscreen = replaceAll(sqlscreen,"상영코드",tstr);
+
+    printf("상영날짜를 입력하세요 : ");
+    scanf("%s",&input_SDATE);
+    sqlscreen = replaceAll(sqlscreen,"상영date",input_SDATE);
+
+    printf("영화이름을 입력하세요 : ");
+    scanf("%s",&input_nameOfMovie);
+    sqlscreen = replaceAll(sqlscreen,"영화name",input_nameOfMovie);
+
+    printf("상영시간을 입력하세요 : ");
+    scanf("%s",&input_movieTime);
+    sqlscreen = replaceAll(sqlscreen,"상영time",input_movieTime);
+
+   printf("상영관을 입력하세요 : ");
+    scanf("%s",&input_cinemaNumber);
+    sqlscreen = replaceAll(sqlscreen,"상영plex",input_cinemaNumber);
+
+   printf("영화등급을 입력하세요 : ");
+    scanf("%s",&input_movieGradeM);
+    sqlscreen = replaceAll(sqlscreen,"영화grade",input_movieGradeM);
+
+    printf("영화 금액을 입력하세요 : ");
+    scanf("%s",&input_moviePrice);
+    sqlscreen = replaceAll(sqlscreen,"영화price",input_moviePrice); 
+
+    printf("남은좌석을 입력하세요 : ");
+    scanf("%s",&input_remainSeat);
+    sqlscreen = replaceAll(sqlscreen,"남은seat",input_remainSeat);
+    // sqlscreen의 문자열에서 해당 위치에 각각 데이터들로 변경시켜준다.
+
+
+    EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+
+    EXEC SQL EXECUTE IMMEDIATE :sqlscreen;
+
+    if(sqlca.sqlcode==0){
+       printf("상영정보등록 완료\n");
+    }
+}
+
+void edit_screen(){ //
+
+        printf("변경할 상영정보의 코드을 입력하세요 : ");
+        scanf("%s",input_search_text);
+
+        printf("변경할 남은 자릿수를 입력하세요 : ");
+        scanf("%s",input_remainSeat);
+
+        //검색문으로 등급도 수정하기
+
+        EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+        EXEC SQL
+                UPDATE screen SET remainSeat =:input_remainSeat WHERE  Scode =:input_search_text ;
+}
+
+
+void edit_reserv(){
+   int i,num_ret;
+   i=0;
+   num_ret=0;
+
+   sqleditr = "UPDATE reservation SET RDATE=날짜,RMovieName='이름',RMovieTime=시간,RPlex=상영관 WHERE Rcode = 코드";
+
+   printf("변경할 예매정보의 예매 코드를 입력하세요 : ");
+   scanf("%s",input_search_text);
+
+   sqleditr = replaceAll(sqleditr,"코드",input_search_text);
+   // 변경한 예매 번호(Rcode)를 입력받아 EMMEDIATE 실행을 위해 replaceAll함수로 rqleditr 변경
+
+   EXEC SQL DECLARE search_reserv_c CURSOR FOR
+      SELECT Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation WHERE Rcode =: input_search_text;
+   EXEC SQL OPEN search_reserv_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH search_reserv_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE search_reserv_c;
+
+   // 해당 예매 정보를 커서로 지정하여 사용자에게 한번 출력해준다.
+
+   printf("변경할 영화의 상영 코드를 입력하세요 : ");
+   scanf("%s",input_search_t);
+
+   EXEC SQL DECLARE f_src_c CURSOR FOR
+          SELECT SDATE, movieName, movieTime, plex, moviePrice FROM screen WHERE Scode = :input_search_t;
+   EXEC SQL OPEN f_src_c;
+
+   for(;;){
+       EXEC SQL FETCH f_src_c INTO : f_r_rec;
+   }
+   EXEC SQL CLOSE f_src_c;
+   // 변경하고 싶은 상영 정보의 상영 코드(Scode)를 입력받아 변경을 위한 변수에 저장한다.
+
+   strcpy(f_r_rec.r_sDate,rtrim(f_r_rec.r_sDate));
+   strcpy(f_r_rec.r_movieName,rtrim(f_r_rec.r_movieName));
+   strcpy(f_r_rec.r_movieTime,rtrim(f_r_rec.r_movieTime));
+   strcpy(f_r_rec.r_plex,rtrim(f_r_rec.r_plex));
+   // 받아온 변수의 우측 공백을 제거하여 저장
+
+   sqleditr = replaceAll(sqleditr,"날짜",f_r_rec.r_sDate);
+   sqleditr = replaceAll(sqleditr,"이름",f_r_rec.r_movieName);
+   sqleditr = replaceAll(sqleditr,"시간",f_r_rec.r_movieTime);
+   sqleditr = replaceAll(sqleditr,"상영관",f_r_rec.r_plex);
+   // replaceAll을 통해 sqleditr을 변경
+
+   EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+   EXEC SQL EXECUTE IMMEDIATE :sqleditr;
+   // 변경된 sqleditr 실행문을 실행한다.
+
+   printf("수정된 예매내역\n");
+
+   EXEC SQL DECLARE after_reserv_c CURSOR FOR
+      SELECT Rcode, RDATE, RID, RMovieName, RMovieTime, RPlex, reservationPrice FROM reservation WHERE Rcode =: input_search_text;
+   EXEC SQL OPEN after_reserv_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;)
+   {
+      EXEC SQL FETCH after_reserv_c INTO : reservation_rec;
+
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);
+      num_ret = sqlca.sqlerrd[2];
+   }
+
+   if((sqlca.sqlerrd[2] - num_ret) > 0){
+      reservation_print_rows(sqlca.sqlerrd[2] - num_ret);
+   
+      printf("Loop $d : sqlerrd[2] = %d, num_ret = %d\n",++i,sqlca.sqlerrd[2],num_ret);}
+
+   EXEC SQL CLOSE after_reserv_c;
+   // 변경된 해당 예매 번호의 데이터를 출력해준다.
+}
+
+void reserv_fun(int i, int num_ret){
+
+    int choice_manu;
+    char *change_price;
+    char tstr[128];
+    char tstr1[128];
+
+
+    sqlreserv = "INSERT INTO reservation VALUES (예약번호,예약날짜,'예약아이디','영화이름',영화시간,상영관번호,예매금액)";
+    sqlbuystore = "INSERT INTO purchaseOfStore VALUES ('구매코드','구매날짜','구매아이디','구매메뉴',구매금액)";
+
+    printf("예매를 원하는 날짜를 입력하세요 : " );
+    scanf("%s",input_s_date);
+
+    EXEC SQL WHENEVER NOT FOUND DO break;
+
+        printf("해당 날짜의 상영 정보를 출력합니다.\n");
+        s_p_f(i,num_ret);
+        // 예매를 원하는 날짜의 해당 상영 정보를 출력하여 보여준다.
+
+        printf("원하는 상영 영화의 시간을 입력하세요 : ");
+        scanf("%s",input_search_text);
+        // 출력된 상영정보 중 원하는 상영 정보의 시간을 입력
+
+        printf("원하는 상영 영화의 상영관 번호를 입력하세요 : ");
+        scanf("%s",input_search_t);
+        // 출력된 상영정보 중 원하는 상영 정보의 상영관 번호를 입력
+
+
+        EXEC SQL DECLARE f_s_c CURSOR FOR
+          SELECT SDATE, movieName, movieTime, plex, moviePrice FROM screen WHERE SDATE = :input_s_date AND movieTime = :input_search_text AND plex = :input_search_t;
+        EXEC SQL OPEN f_s_c;
+
+        // 입력받은 3가지 조건을 통해 검색문 커서를 생성
+
+        for(;;){
+           EXEC SQL FETCH f_s_c INTO : f_r_rec;
+        }
+        EXEC SQL CLOSE f_s_c;
+
+        // 예매 테이블에 저장하기 위해 상영 테이블의 데이터를 구조체에 저장해준다
+
+        printf("%s\n",f_r_rec.r_movieName);
+
+        itoa(f_r_rec.r_moviePrice,change_price); //int 타입으로 받은 변수를 IMMDIATE 실행을 위해 문자열로 형 변환시켜준다
+
+         strcpy(f_r_rec.r_sDate,rtrim(f_r_rec.r_sDate));
+         strcpy(f_r_rec.r_movieName,rtrim(f_r_rec.r_movieName));
+         strcpy(f_r_rec.r_movieTime,rtrim(f_r_rec.r_movieTime));
+         strcpy(f_r_rec.r_plex,rtrim(f_r_rec.r_plex));
+         // 공백이 존재하는 변수들의 공백을 제거해주고 strcpy를 통해 수정해준다.
+
+
+         EXEC SQL DECLARE code_c_c CURSOR FOR
+            SELECT Rcode FROM reservation;
+         EXEC SQL OPEN code_c_c;
+
+         printf("check\n");
+ 
+         EXEC SQL WHENEVER NOT FOUND DO break;
+
+         for(;;){ 
+            EXEC SQL FETCH code_c_c INTO :input_r_n;
+         }
+
+         EXEC SQL CLOSE code_c_c;
+
+         // 예매 테이블의 기본키인 예매 코드를 계산해주기 위해 정수 변수에 마지막 예매코드 값을 저장해준다.
+
+         input_r_n++;
+
+         // 마지막 예매 코드에서 1값을 더해준다.
+
+         itoa(input_r_n,tstr);
+         // 1값을 더해준 변수를 IMMDIATE 실행을 위해 문자열로 형 변환 시켜준다.
+
+       sqlreserv = replaceAll(sqlreserv,"예약번호",tstr);
+        sqlreserv = replaceAll(sqlreserv,"예약날짜",f_r_rec.r_sDate);
+        sqlreserv = replaceAll(sqlreserv,"예약아이디",input_id);
+        sqlreserv = replaceAll(sqlreserv,"영화이름",f_r_rec.r_movieName);
+        sqlreserv = replaceAll(sqlreserv,"영화시간",f_r_rec.r_movieTime);
+        sqlreserv = replaceAll(sqlreserv,"상영관번호",f_r_rec.r_plex);
+        sqlreserv = replaceAll(sqlreserv,"예매금액",change_price);
+
+        // IMMIDIATE 실행을 위해 기존 문자열 포인터에 저장되어있는 문자열을 각 변수 값으로 변경해준다.
+        
+
+        EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+       EXEC SQL EXECUTE IMMEDIATE :sqlreserv; // 예매 테이블에 값을 삽입하는 INSERT 명령어 실행
+
+        printf("상점 구매\n");
+        printf("원하시는 메뉴를 선택하세요\n1.없음 2.그냥 팝콘 3.카라멜 팝콘 4.콜라 : ");
+        scanf("%d",&choice_manu);
+
+        EXEC SQL DECLARE code_p_c CURSOR FOR
+            SELECT Pcode FROM purchaseOfStore;
+         EXEC SQL OPEN code_p_c;
+
+         EXEC SQL WHENEVER NOT FOUND DO break;
+
+        for(;;){
+            EXEC SQL FETCH code_p_c INTO :input_p_n;
+        }
+        // 구매 정보 테이블의 기본키인 Pcode 계산을 위해 정수형 변수에 마지막 데이터를 저장한다.
+        EXEC SQL CLOSE code_p_c;
+
+        switch(choice_manu){
+            case 1:  printf("없음을 선택\n");
+                     printf("check\n");
+                     insert_pay(choice_manu,f_r_rec.r_moviePrice,change_price);
+                     break;
+                     // 없음을 선택할 경우 테이블에 저장하지 않아도 되어 
+                     // purchaseOfStore 테이블에 데이터를 저장하지 않고 payment 테이블에 데이터 저장을 위해 해당 함수를 출력한다.
+
+            case 2:  printf("그냥 팝콘 선택\n");
+                     input_p_n++;
+                     itoa(input_p_n,tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매코드",tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매날짜",f_r_rec.r_sDate);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매아이디",input_id);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매메뉴","그냥_팝콘");
+                     sqlbuystore = replaceAll(sqlbuystore,"구매금액","5000");
+                     EXEC SQL EXECUTE IMMEDIATE :sqlbuystore;
+                     insert_pay(choice_manu,f_r_rec.r_moviePrice,change_price);
+                     break;
+
+            case 3:  printf("카라멜 팝콘 선택\n");
+                     input_p_n++;
+                     itoa(input_p_n,tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매코드",tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매날짜",f_r_rec.r_sDate);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매아이디",input_id);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매메뉴","카라멜_팝콘");
+                     sqlbuystore = replaceAll(sqlbuystore,"구매금액","7000");
+                     EXEC SQL EXECUTE IMMEDIATE :sqlbuystore;
+                     insert_pay(choice_manu,f_r_rec.r_moviePrice,change_price);
+                     break;
+
+            case 4:  printf("콜라 선택\n");
+                     input_p_n++;
+                     itoa(input_p_n,tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매코드",tstr1);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매날짜",f_r_rec.r_sDate);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매아이디",input_id);
+                     sqlbuystore = replaceAll(sqlbuystore,"구매메뉴","콜라");
+                     sqlbuystore = replaceAll(sqlbuystore,"구매금액","2000");
+                     EXEC SQL EXECUTE IMMEDIATE :sqlbuystore;
+                     insert_pay(choice_manu,f_r_rec.r_moviePrice,change_price);
+                     break;
+
+            // 2 ~ 3 경우 replaceAll 함수와 IMMEDIATE를 이용해 purchaseOfStore 테이블에 데이터를 삽입한다.
+        }
+
+}
+
+void insert_pay(int cn, int reservp, char *chaprice){
+   int i,num_ret;
+   char tstr2[128];
+   char pstr[128];
+   int f_p;
+   i = 0;
+   num_ret = 0;
+
+   sqlpay = "INSERT INTO payment VALUES (결제번호,결제날짜,'고객아이디',매점구매금액,예매금액,'없음',0,총금액)";
+   
+   EXEC SQL DECLARE pp_p_c CURSOR FOR
+      SELECT PPcode FROM payment;
+   EXEC SQL OPEN pp_p_c;
+
+   EXEC SQL WHENEVER NOT FOUND DO break;
+
+   for(;;){
+      EXEC SQL FETCH pp_p_c INTO :ch_p_n;
+   }
+   EXEC SQL CLOSE pp_p_c;
+
+   // payment 테이블의 기본키인 PPcode계산을 위해 정수형 변수에 마지막 데이터 값을 저장한다.
+
+   ch_p_n++;
+   itoa(ch_p_n,tstr2);
+
+   // 값을 1 올려주고 정수형으로 형변환 시킨다.
+
+   sqlpay = replaceAll(sqlpay,"결제번호",tstr2);
+   sqlpay = replaceAll(sqlpay,"결제날짜",f_r_rec.r_sDate);
+   sqlpay = replaceAll(sqlpay,"고객아이디",input_id);
+   sqlpay = replaceAll(sqlpay,"예매금액",chaprice);
+   // replaceAll 함수를 이용해 sqlpay문자열을 변경해준다.
+
+   if(cn == 1){
+      f_p = reservp;
+      sqlpay = replaceAll(sqlpay,"매점구매금액","0");
+   }
+   else if(cn == 2){
+      f_p = reservp + 5000;
+      sqlpay = replaceAll(sqlpay,"매점구매금액","5000");
+   }
+   else if(cn == 3){
+      f_p = reservp + 7000;
+      sqlpay = replaceAll(sqlpay,"매점구매금액","7000");
+   }
+   else if(cn == 4){
+      f_p = reservp + 2000;
+      sqlpay = replaceAll(sqlpay,"매점구매금액","2000");
+   }
+   // 함수 호출전 reserv_fun()함수에서 구매를 위해 선택한 값 별로 sumprice 속성에 들어갈 값을 계산해준다.
+
+   itoa(f_p,pstr); // 계산된 변수를 문자열로 형변환 시켜준다.
+
+   sqlpay = replaceAll(sqlpay,"총금액",pstr); // 문자열로 형변환된 변수의 값으로 sqlpay 변경
+   EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+   EXEC SQL EXECUTE IMMEDIATE :sqlpay; //해당 문자열의 명령어 sql 실행
+
+   printf("결제 완료 되었습니다.\n");
+
+   printf("고객님의 예매내역입니다.\n");
+   cus_reserv_p_f(i,num_ret); // 모든 sql문이 잘 작동하였을 시에 방금 실행한 예매 내역을 출력해준다.
+}
+
+char* itoa(int num, char *str){ 
+    int i=0; 
+    int radix = 10;  // 10진수로 표현 
+    int deg=1; 
+    int cnt = 0; 
+    while(1){    // 입력한 num의 자리수의 수를 뽑는다 
+        if( (num/deg) > 0) 
+            cnt++; 
+        else 
+            break; 
+        deg *= radix; 
+    } 
+    deg /=radix;    // deg가 기존 자리수보다 한자리 높게 카운트 되어서 한번 나누어 준다.
+    // EX) 1241 ->    cnt = 4; deg = 1000; 
+    for(i=0; i<cnt; i++)    
+    {    // 자리수만큼 반복한다 
+        *(str+i) = num/deg + '0';    // 가장 큰 자리수의 수부터  
+        num -= ((num/deg) * deg);        // 뽑은 자리수의 수를 없앤다. 
+        deg /=radix;    // 자리수를 줄인다
+    }
+    *(str+i) = '\0';  // 문자열 끝에 들어갈 널을 삽입한다.
+    return str;  // 문자열을 반환한다.
+}
+
+char* rtrim(char* s) {
+  char t[100];
+  char *end;
+
+  strcpy(t, s); 
+  end = t + strlen(t) - 1;
+  while (end != t && isspace(*end))
+    end--;
+  *(end + 1) = '\0';
+  s = t;
+
+  return s;
+}
+
+void clear_table(){
+   EXEC SQL DROP TABLE payment;
+   EXEC SQL DROP TABLE purchaseOfStore;
+   EXEC SQL DROP TABLE store;
+   EXEC SQL DROP TABLE reservation;
+   EXEC SQL DROP TABLE screen;
+   EXEC SQL DROP TABLE priceOfReservation;
+   EXEC SQL DROP TABLE cinema;
+   EXEC SQL DROP TABLE movie;
+   EXEC SQL DROP TABLE levelOfMovie;
+   EXEC SQL DROP TABLE customer;
+   EXEC SQL DROP TABLE cardInformation;
+   EXEC SQL DROP TABLE informationOfCoupon;
+   EXEC SQL DROP TABLE levelOfCustomer;
+   EXEC SQL DROP TABLE manegerInfo;
+   }
+
+void create_table(){
+   EXEC SQL 
+   CREATE TABLE manegerInfo (
+   manegerID VARCHAR(30),
+   manegerPW VARCHAR(30),
+   PRIMARY KEY (manegerID)
+);
+
+   EXEC SQL 
+   CREATE TABLE levelOfCustomer (
+   levelName  VARCHAR(10) DEFAULT ('sliver') ,
+   minaccumulationPrice INTEGER DEFAULT 0,
+   PRIMARY KEY(levelName)  
+);
+
+   EXEC SQL 
+   CREATE TABLE informationOfCoupon (
+   couponName  VARCHAR(40) DEFAULT('없음') NOT NULL,
+   salePrice INTEGER NOT NULL,
+   couponExpiryDate DATE NOT NULL,
+   PRIMARY KEY(couponName)
+);
+
+   EXEC SQL 
+   CREATE TABLE cardInformation (
+   numberCard  VARCHAR(16) NOT NULL,
+   cardCompany  VARCHAR(20) NOT NULL,
+   CVC  NUMBER(3) NOT NULL,
+   cardExpiryDate NUMBER(4) NOT NULL,
+   PRIMARY KEY(numberCard) 
+);
+
+   EXEC SQL 
+   CREATE TABLE customer (
+   ID VARCHAR(8) NOT NULL,
+   PW VARCHAR(12) NOT NULL,
+   name VARCHAR(10) NOT NULL,
+   birth DATE NOT NULL,
+   phone VARCHAR(11) NOT NULL,
+   customerOfGrade VARCHAR(10) ,
+   haveCoupon VARCHAR(40) DEFAULT('없음'),
+   cardNumber VARCHAR(16) NOT NULL,
+   accumulationPrice INTEGER NOT NULL,
+   PRIMARY KEY(ID),
+   FOREIGN KEY(customerOfGrade) REFERENCES levelOfCustomer(levelName),
+   FOREIGN KEY(haveCoupon) REFERENCES informationOfCoupon(couponName),
+   FOREIGN KEY(cardNumber) REFERENCES cardInformation(numberCard) 
+);
+
+   EXEC SQL 
+   CREATE TABLE levelOfMovie(
+   levelOfMovieName  VARCHAR(8) DEFAULT 'any body' NOT NULL,
+   minAge NUMBER(2) NOT NULL,
+   PRIMARY KEY(levelOfMovieName)
+   );
+
+   EXEC SQL 
+   CREATE TABLE movie(
+   nameOfMovie  VARCHAR(60) NOT NULL,
+   director  VARCHAR(30) DEFAULT('모름'),
+   mainActor1  VARCHAR(30) DEFAULT('모름'),
+   mainActor2 VARCHAR(30) DEFAULT('모름'),
+   movieGradeM VARCHAR(8) NOT NULL,
+   PRIMARY KEY(nameOfMovie),
+   FOREIGN KEY(movieGradeM) REFERENCES levelOfMovie(levelOfMovieName)
+   );
+
+   EXEC SQL 
+   CREATE TABLE cinema(
+   cinemaNumber NUMBER(2) NOT NULL,
+   numberOfSeat NUMBER(2) NOT NULL,
+   PRIMARY KEY(cinemaNumber)
+   );
+
+   EXEC SQL 
+   CREATE TABLE priceOfReservation(
+   reservationMoney INTEGER NOT NULL,
+   startTime NUMBER(4) NOT NULL,
+   PRIMARY KEY(reservationMoney)
+   );
+
+   EXEC SQL 
+   CREATE TABLE screen (
+   Scode INTEGER,
+   SDATE NUMBER(4),
+   movieName VARCHAR(60) NOT NULL,
+   movieTime  NUMBER(4) NOT NULL,
+   plex NUMBER(2) NOT NULL,
+   movieGradeS VARCHAR(8) NOT NULL,
+   moviePrice  NUMBER(5) NOT NULL,
+   remainSeat NUMBER(3) NOT NULL,
+   PRIMARY KEY(Scode),
+   FOREIGN KEY(movieName) REFERENCES movie(nameOfMovie),
+   FOREIGN KEY(plex) REFERENCES cinema(cinemaNumber),
+   FOREIGN KEY(movieGradeS) REFERENCES levelOfMovie(levelOfMovieName),
+   FOREIGN KEY(moviePrice) REFERENCES priceOfReservation(reservationMoney)
+);
+
+   EXEC SQL 
+   CREATE TABLE store(
+   menuName VARCHAR(20),
+   menuPrice INTEGER,
+   PRIMARY KEY(menuName)
+   );
+
+   EXEC SQL 
+   CREATE TABLE reservation(
+   Rcode INTEGER,
+      RDATE NUMBER(4),
+      RID VARCHAR(8) NOT NULL,
+      RMovieName VARCHAR(60) NOT NULL,
+      RMovieTime NUMBER(4) NOT NULL,
+      RPlex NUMBER(2) NOT NULL,
+      reservationPrice INTEGER NOT NULL,
+      PRIMARY KEY(Rcode),
+      FOREIGN KEY(RID) REFERENCES customer(ID),
+      FOREIGN KEY(RPlex) REFERENCES cinema(cinemaNumber),
+      FOREIGN KEY(RMovieName) REFERENCES movie(nameOfMovie),
+      FOREIGN KEY(reservationPrice) REFERENCES priceOfReservation(reservationMoney)
+      );
+
+   EXEC SQL 
+   CREATE TABLE purchaseOfStore(
+   Pcode INTEGER,
+      PSDATE NUMBER(4),
+      PID VARCHAR(8) ,
+      PMenuName VARCHAR(20),
+      purchasePrice INTEGER DEFAULT 0,
+      PRIMARY KEY(Pcode),
+      FOREIGN KEY(PID) REFERENCES customer(ID),
+      FOREIGN KEY(PMenuName) REFERENCES store(menuName)
+      );
+
+   EXEC SQL 
+   CREATE TABLE payment(
+   PPcode INTEGER NOT NULL,
+      PDATE NUMBER(4),
+      PAID VARCHAR(8) NOT NULL,
+      PPurchasePrice INTEGER DEFAULT 0,
+      PreservationPrice INTEGER,
+      PcouponName VARCHAR(40) DEFAULT('없음'),
+      subPrice INTEGER DEFAULT 0,
+      sumPrice INTEGER NOT NULL,
+      PRIMARY KEY (PPcode),
+      FOREIGN KEY(PAID) REFERENCES customer(ID),
+      FOREIGN KEY(PreservationPrice) REFERENCES priceOfReservation(reservationMoney),
+      FOREIGN KEY(PcouponName) REFERENCES informationOfCoupon(couponName)
+      );
+
+}
+
+
+void insert_sample(){
+   EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('silver',0);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold',100000);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold1',300001);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold2',300002);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold3',300003);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold4',200004);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold5',200005);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold6',200006);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold7',200007);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('gold8',200008);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('vip',200000);
+EXEC SQL
+INSERT INTO levelOfCustomer VALUES ('vvip',300000);
+
+
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('없음',0,'2999-12-31');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰',5000,'2017-12-31');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰1',5001,'2017-12-30');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰2',5002,'2017-12-29');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰3',5003,'2017-12-28');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰4',5004,'2017-12-27');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰5',5005,'2017-12-26');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰6',5006,'2017-12-25');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('세종대학교학생쿠폰7',5007,'2017-12-31');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('vip회원쿠폰',5000,'2017-12-31');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('vvip회원쿠폰',10000,'2017-12-31');
+EXEC SQL
+INSERT INTO informationOfCoupon VALUES ('1주년고객감사쿠폰',3000,'2017-12-31');
+
+
+EXEC SQL
+INSERT INTO cardInformation VALUES (1111111111111111,'신한카드',111,0420);
+EXEC SQL
+INSERT INTO cardInformation VALUES (2222222222222222,'visa카드',222,0520);
+EXEC SQL
+INSERT INTO cardInformation VALUES (3333333333333333,'국민카드',333,0119);
+EXEC SQL
+INSERT INTO cardInformation VALUES (4444444444444444,'신한카드',444,1221);
+EXEC SQL
+INSERT INTO cardInformation VALUES (5555555555555555,'하나카드',555,1018);
+EXEC SQL
+INSERT INTO cardInformation VALUES (6666666666666666,'visa카드',666,0919);
+EXEC SQL
+INSERT INTO cardInformation VALUES (7777777777777777,'master카드',777,0220);
+EXEC SQL
+INSERT INTO cardInformation VALUES (8888888888888888,'국민카드',888,1219);
+EXEC SQL
+INSERT INTO cardInformation VALUES (9999999999999999,'하나카드',999,0817);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412341234,'신한카드',123,1122);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412341233,'신한카드',122,1128);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412341232,'신한카드',125,1127);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412342345,'신한카드',129,1126);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412344567,'신한카드',121,1125);
+EXEC SQL
+INSERT INTO cardInformation VALUES (1234123412346789,'신한카드',149,1124);
+
+
+
+
+EXEC SQL
+INSERT INTO customer VALUES ('aaaa1234','aaaaaa123456','김삿갓','1990-01-01',01011111111,'silver','세종대학교학생쿠폰',1111111111111111,20000);
+EXEC SQL
+INSERT INTO customer VALUES ('bbbb2222','bbbbbb222222','박지우','1999-12-25',01022222222,'gold','없음',2222222222222222,130000);
+EXEC SQL
+INSERT INTO customer VALUES ('cccc3244','cccccc999999','최주예','1994-12-15',01092929292,'vvip','vvip회원쿠폰',3333333333333333,10000000);
+EXEC SQL
+INSERT INTO customer VALUES ('ewqewq1','1234wowwow','안홍섭','1994-06-27',01092719218,'silver','없음',4444444444444444,75000);
+EXEC SQL
+INSERT INTO customer VALUES ('yourking','imtheking','김왕','2000-01-01',01015881588,'vip','vip회원쿠폰',5555555555555555,240000);
+EXEC SQL
+INSERT INTO customer VALUES ('sotired4','iwantrest999','왕피곤','1985-03-19',01025252525,'gold','없음',6666666666666666,113000);
+EXEC SQL
+INSERT INTO customer VALUES ('rrreee47','pwis1234','최대충','1970-07-28',01087870909,'vip','1주년고객감사쿠폰',7777777777777777,274000);
+EXEC SQL
+INSERT INTO customer VALUES ('impig9','alwayshungry','이돼지','2002-11-06',01098765234,'vvip','세종대학교학생쿠폰',8888888888888888,764000);
+EXEC SQL
+INSERT INTO customer VALUES ('rnlcksg5','aodnrnlcksg','John Wegon','1954-04-19',01049293017,'silver','없음',9999999999999999,12000);
+EXEC SQL
+INSERT INTO customer VALUES ('dhemeuzz','sampleno55','김아무','1997-08-24',01014324312,'silver','1주년고객감사쿠폰',1234123412341234,5000);
+EXEC SQL
+INSERT INTO customer VALUES ('dhemeuz3','sampleno54','김아모','1997-08-23',01014324317,'silver','1주년고객감사쿠폰',1234123412341233,5000);
+EXEC SQL
+INSERT INTO customer VALUES ('dhemeuz2','sampleno53','김아며','1997-08-22',01014324315,'silver','1주년고객감사쿠폰',1234123412341232,5000);
+EXEC SQL
+INSERT INTO customer VALUES ('dksghdz','dksgka','양아치','1997-08-21',01014324311,'silver','1주년고객감사쿠폰',1234123412342345,5000);
+EXEC SQL
+INSERT INTO customer VALUES ('dksgkwl','dksgkwl','깡패','1997-08-20',01014324310,'silver','1주년고객감사쿠폰',1234123412344567,5000);
+EXEC SQL
+INSERT INTO customer VALUES ('apfhd','apfhd','폭주족','1997-08-29',01014324319,'silver','1주년고객감사쿠폰',1234123412346789,5000);
+
+
+
+
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('any_body',0);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_12',12);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_15',15);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_14',14);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_13',13);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_11',11);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_10',10);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_16',16);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_17',17);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_18',18);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_5',5);
+EXEC SQL
+INSERT INTO levelOfMovie VALUES ('after_19',19);
+
+
+EXEC SQL
+INSERT INTO movie VALUES ('보스베이비','톰_맥그라스','알렉_볼드윈','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우','톰_맥그라스','알렉_볼드윈','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우1','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우2','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우3','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우4','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('쏘우5','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('인시디어스','모름','모름','모름','any_body');
+EXEC SQL
+INSERT INTO movie VALUES ('보안관','김형주','이성민','조진웅','after_15');
+EXEC SQL
+INSERT INTO movie VALUES ('에이리언:커버넌트','리들리_스콧','마이클_패스벤더','캐서린_워터스턴','after_15');
+EXEC SQL
+INSERT INTO movie VALUES ('가디언즈_오브_갤럭시vol.2','제임스_건','크리스_프랫','조_샐다나','after_12');
+EXEC SQL
+INSERT INTO movie VALUES ('마님은_왜_돌쇠를_야밤에_불렀을까?','김야함','김돌쇠','김마님','after_19');
+
+
+EXEC SQL
+INSERT INTO cinema VALUES (1,10);
+EXEC SQL
+INSERT INTO cinema VALUES (2,20);
+EXEC SQL
+INSERT INTO cinema VALUES (3,30);
+EXEC SQL
+INSERT INTO cinema VALUES (4,40);
+EXEC SQL
+INSERT INTO cinema VALUES (5,50);
+EXEC SQL
+INSERT INTO cinema VALUES (6,60);
+EXEC SQL
+INSERT INTO cinema VALUES (7,70);
+EXEC SQL
+INSERT INTO cinema VALUES (8,80);
+EXEC SQL
+INSERT INTO cinema VALUES (18,81);
+EXEC SQL
+INSERT INTO cinema VALUES (28,82);
+EXEC SQL
+INSERT INTO cinema VALUES (38,83);
+EXEC SQL
+INSERT INTO cinema VALUES (48,84);
+
+
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (8000,0700);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10000,1200);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10001,1201);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10002,1202);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10003,1203);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10004,1204);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10005,1205);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10006,1206);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10007,1207);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (10008,1208);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (12000,1600);
+EXEC SQL
+INSERT INTO priceOfReservation VALUES (14000,2000);
+
+
+EXEC SQL
+INSERT INTO screen VALUES (170511001,0511,'보스베이비',0730,1,'any_body',8000,9);
+EXEC SQL
+INSERT INTO screen VALUES (170511002,0511,'보스베이비',1230,2,'any_body',10000,20);
+EXEC SQL
+INSERT INTO screen VALUES (170511003,0511,'보스베이비',1625,3,'any_body',12000,29);
+EXEC SQL
+INSERT INTO screen VALUES (170511004,0511,'보스베이비',2140,4,'any_body',14000,40);
+EXEC SQL
+INSERT INTO screen VALUES (170511005,0511,'에이리언:커버넌트',1440,5,'after_15',10000,49);
+EXEC SQL
+INSERT INTO screen VALUES (170511006,0511,'에이리언:커버넌트',2115,6,'after_15',14000,60);
+EXEC SQL
+INSERT INTO screen VALUES (170511007,0511,'보안관',0950,7,'after_15',8000,70);
+EXEC SQL
+INSERT INTO screen VALUES (170511008,0511,'보안관',1330,8,'after_15',10000,80);
+EXEC SQL
+INSERT INTO screen VALUES (170511009,0511,'보안관',2330,1,'after_15',14000,10);
+EXEC SQL
+INSERT INTO screen VALUES (170511010,0511,'가디언즈_오브_갤럭시vol.2',0840,3,'after_12',8000,30);
+EXEC SQL
+INSERT INTO screen VALUES (170511011,0511,'가디언즈_오브_갤럭시vol.2',1300,3,'after_12',8000,30);
+EXEC SQL
+INSERT INTO screen VALUES (170511012,0511,'마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,'after_19',14000,12);
+
+
+EXEC SQL
+INSERT INTO store VALUES ('없음',0);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘1',5001);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘2',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘3',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘4',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘5',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘6',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘7',5000);
+EXEC SQL
+INSERT INTO store VALUES ('그냥_팝콘8',5000);
+EXEC SQL
+INSERT INTO store VALUES ('카라멜_팝콘',7000);
+EXEC SQL
+INSERT INTO store VALUES ('콜라',2000);
+
+
+EXEC SQL
+INSERT INTO reservation VALUES (170511001,0511,'aaaa1234','보스베이비',0730,1,8000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511002,0511,'bbbb2222','가디언즈_오브_갤럭시vol.2',0840,3,8000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511003,0511,'yourking','보스베이비',1625,3,12000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511004,0511,'impig9','에이리언:커버넌트',1440,5,10000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511005,0511,'ewqewq1','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511006,0511,'rnlcksg5','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511007,0511,'rrreee47','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511008,0511,'dhemeuz3','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511009,0511,'dhemeuz2','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511010,0511,'aaaa1234','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511011,0511,'dhemeuzz','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511012,0511,'bbbb2222','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+EXEC SQL
+INSERT INTO reservation VALUES (170511013,0512,'bbbb2222','마님은_왜_돌쇠를_야밤에_불렀을까?',2350,2,14000);
+
+
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511001,0511,'aaaa1234','카라멜_팝콘',7000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511002,0511,'bbbb2222','콜라',2000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511003,0511,'yourking','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511004,0511,'impig9','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511005,0511,'ewqewq1','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511006,0511,'rrreee47','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511007,0511,'dhemeuz3','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511008,0511,'dhemeuz2','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511009,0511,'dhemeuzz','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511010,0511,'bbbb2222','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511011,0511,'aaaa1234','그냥_팝콘',5000);
+EXEC SQL
+INSERT INTO purchaseOfStore VALUES (170511012,0511,'rnlcksg5','그냥_팝콘',5000);
+
+
+EXEC SQL
+INSERT INTO payment VALUES(170511001,0511,'dhemeuz2',5000,14000,'없음',0,19000);
+EXEC SQL
+INSERT INTO payment VALUES(170511002,0511,'aaaa1234',5000,14000,'없음',0,19000);
+EXEC SQL
+INSERT INTO payment VALUES(170511003,0511,'bbbb2222',2000,14000,'없음',0,16000);
+EXEC SQL
+INSERT INTO payment VALUES(170511004,0511,'aaaa1234',7000,8000,'없음',0,15000);
+EXEC SQL
+INSERT INTO payment VALUES(170511005,0511,'bbbb2222',5000,8000,'1주년고객감사쿠폰',3000,10000);
+EXEC SQL
+INSERT INTO payment VALUES(170511006,0511,'yourking',2000,12000,'1주년고객감사쿠폰',3000,11000);
+EXEC SQL
+INSERT INTO payment VALUES(170511007,0511,'impig9',5000,10000,'vvip회원쿠폰',10000,7000);
+EXEC SQL
+INSERT INTO payment VALUES(170511008,0511,'ewqewq1',5000,14000,'없음',0,19000);
+EXEC SQL
+INSERT INTO payment VALUES(170511009,0511,'rnlcksg5',5000,14000,'없음',0,19000);
+EXEC SQL
+INSERT INTO payment VALUES(170511010,0511,'rrreee47',5000,14000,'vvip회원쿠폰',5000,14000);
+EXEC SQL
+INSERT INTO payment VALUES(170511011,0511,'dhemeuz3',5000,14000,'없음',0,19000);
+EXEC SQL
+INSERT INTO payment VALUES(170511012,0511,'dhemeuzz',5000,14000,'없음',0,19000);
+
+
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('adminofsystem13011017','13011017ishandsome');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('adminofsystem13011049','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('qwerty123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('asdfgh123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('zxcvbn123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('qazwsx123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('edcrfv123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('tgbyhn123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('ujmikl123456','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('123456qwerty','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('123456asdfgh','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('123456zxcvbn','13011049stupid');
+EXEC SQL
+INSERT INTO manegerInfo VALUES ('nmnm','nmnm');
+}
