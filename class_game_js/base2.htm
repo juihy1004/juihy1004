@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+body{
+		background-image : url("http://cfile27.uf.tistory.com/image/201A5D404E429EDF3891E8");
+		background-repeat : repeat;
+		background-size : cover;}
+
+form#inp{
+		position : absolute;
+		top : 80%;
+		left : 40%;
+		}
+
+.strike,.ball,.out{margin : 1%;}
+#st1,#st2,#st3,#st4{display : none;}
+#ba1,#ba2,#ba3,#ba4{display : none;}
+#ou1,#ou2,#ou3{display : none;}
+
+
+</style>
+</head>
+
+<body>
+
+<a href="main.html" style="color : white; text-decoration : none;"><b>go to menu</b></a>
+<p style ="font-size : 50px; text-align : center;color : white;position : absolute; top : 10%; left : 30%;"><b>GUESS THE NUMBER</b></P>
+
+<div style ="position : absolute;  left : 25.5%; width : 49%; heigth : 100%;">
+<img
+	src="http://postfiles3.naver.net/MjAxNzA1MjRfMzYg/MDAxNDk1NjE2MDk3Mjg3.1qyDhvYGQfv5TVFFxBTjWU-Drm3lp5XOj5F27I9ogfMg.BSS1HKRhyYb3Noxd1Kd3VSlETMHzvounCbgc99rfTQ8g.PNG.juihy1005/center.png?type=w2" class="base1" style ="margin-top : 38%;margin-right :5%; width:20%;height : 20%">
+<span id="qusetion1" style =" font-size : 500%; position: absolute; top:65%; left : 8%; width:20%;height : 20%;"><b>?</b></span>
+<img src="http://postfiles3.naver.net/MjAxNzA1MjRfMzYg/MDAxNDk1NjE2MDk3Mjg3.1qyDhvYGQfv5TVFFxBTjWU-Drm3lp5XOj5F27I9ogfMg.BSS1HKRhyYb3Noxd1Kd3VSlETMHzvounCbgc99rfTQ8g.PNG.juihy1005/center.png?type=w2" class="base2"	style ="margin-top : 38%;margin-right :3%;width:20%;height : 20% ">
+<span id="qusetion2" style ="font-size : 500%;  position: absolute; top:65%; left : 33%;width:20%;height : 20%;"><b>?</b></span>
+<img src="http://postfiles3.naver.net/MjAxNzA1MjRfMzYg/MDAxNDk1NjE2MDk3Mjg3.1qyDhvYGQfv5TVFFxBTjWU-Drm3lp5XOj5F27I9ogfMg.BSS1HKRhyYb3Noxd1Kd3VSlETMHzvounCbgc99rfTQ8g.PNG.juihy1005/center.png?type=w2" class="base3"	style ="margin-top : 38%;margin-right :3%; width:20%;height : 20%">
+<span id="qusetion3" style ="font-size : 500%;  position: absolute; top:65%; left : 57%;width:20%;height : 20%;"><b>?</b></span>
+<img src="http://postfiles3.naver.net/MjAxNzA1MjRfMzYg/MDAxNDk1NjE2MDk3Mjg3.1qyDhvYGQfv5TVFFxBTjWU-Drm3lp5XOj5F27I9ogfMg.BSS1HKRhyYb3Noxd1Kd3VSlETMHzvounCbgc99rfTQ8g.PNG.juihy1005/center.png?type=w2" class="base4" style ="margin-top : 38%;width:20%;height : 20%">
+<span id="qusetion4" style ="font-size : 500%; position: absolute; top:65%; left : 81%; width:20%;height : 20%"><b>?</b></span>
+
+</div>
+
+
+
+
+<div class="strike">
+<img  id ="st" src="http://postfiles5.naver.net/MjAxNzA1MjRfMTAz/MDAxNDk1NjE2MDk0NTYw.gwm26erkvl3zxx8alcjmR43VycOFFUNgc7SU7KXcY2Qg.FokjqX0DSQl-ME2LITqfi6ZSynzBzlBKru6BwZCdYFIg.PNG.juihy1005/ball.png?type=w2">
+<img id ="st1" src="http://postfiles10.naver.net/MjAxNzA1MjRfNzIg/MDAxNDk1NjE2MDk1Nzg1.dD6Hnb_M5Nujv9hLeyIi0WZBp2Vq35thyjcyKkhR_OAg.YdDhDNTeU-vDzgwOwRQTUMcwUN2czk4ibGf_KH6Y_yUg.PNG.juihy1005/ballc.png?type=w2" >
+<img id ="st2" src="http://postfiles10.naver.net/MjAxNzA1MjRfNzIg/MDAxNDk1NjE2MDk1Nzg1.dD6Hnb_M5Nujv9hLeyIi0WZBp2Vq35thyjcyKkhR_OAg.YdDhDNTeU-vDzgwOwRQTUMcwUN2czk4ibGf_KH6Y_yUg.PNG.juihy1005/ballc.png?type=w2" >
+<img id ="st3" src="http://postfiles10.naver.net/MjAxNzA1MjRfNzIg/MDAxNDk1NjE2MDk1Nzg1.dD6Hnb_M5Nujv9hLeyIi0WZBp2Vq35thyjcyKkhR_OAg.YdDhDNTeU-vDzgwOwRQTUMcwUN2czk4ibGf_KH6Y_yUg.PNG.juihy1005/ballc.png?type=w2">
+<img id ="st4" src="http://postfiles10.naver.net/MjAxNzA1MjRfNzIg/MDAxNDk1NjE2MDk1Nzg1.dD6Hnb_M5Nujv9hLeyIi0WZBp2Vq35thyjcyKkhR_OAg.YdDhDNTeU-vDzgwOwRQTUMcwUN2czk4ibGf_KH6Y_yUg.PNG.juihy1005/ballc.png?type=w2">
+</div>
+
+<div class="ball">
+<img id="ba" src="http://postfiles8.naver.net/MjAxNzA1MjRfOSAg/MDAxNDk1NjE2MDk0OTAz.6cFSvG7oFQpwC3us3dm8S9UoXzcGGFYMbMqkYR4-lWQg.OTgDuEfA5-c1CzVymP1W2W2oKH1gpKMMP5JMi_XCpUQg.PNG.juihy1005/ball2.png?type=w2">
+<img id="ba1" src="http://postfiles13.naver.net/MjAxNzA1MjRfMTk5/MDAxNDk1NjE2MDk1MTE4.vjo2jsdBBrZjdNCkoUKUBoTyTFTrS2iArygleI9qFbUg._vZgEhiXf5dRxM01IFziQRCMS_aUOgQozcGSz6pw78Ig.PNG.juihy1005/ball2c.png?type=w2" >
+<img id="ba2" src="http://postfiles13.naver.net/MjAxNzA1MjRfMTk5/MDAxNDk1NjE2MDk1MTE4.vjo2jsdBBrZjdNCkoUKUBoTyTFTrS2iArygleI9qFbUg._vZgEhiXf5dRxM01IFziQRCMS_aUOgQozcGSz6pw78Ig.PNG.juihy1005/ball2c.png?type=w2" >
+<img id="ba3" src="http://postfiles13.naver.net/MjAxNzA1MjRfMTk5/MDAxNDk1NjE2MDk1MTE4.vjo2jsdBBrZjdNCkoUKUBoTyTFTrS2iArygleI9qFbUg._vZgEhiXf5dRxM01IFziQRCMS_aUOgQozcGSz6pw78Ig.PNG.juihy1005/ball2c.png?type=w2" >
+<img id="ba4" src="http://postfiles13.naver.net/MjAxNzA1MjRfMTk5/MDAxNDk1NjE2MDk1MTE4.vjo2jsdBBrZjdNCkoUKUBoTyTFTrS2iArygleI9qFbUg._vZgEhiXf5dRxM01IFziQRCMS_aUOgQozcGSz6pw78Ig.PNG.juihy1005/ball2c.png?type=w2" >
+</div>
+
+<div class="out">
+<img id = "ou" src="http://postfiles6.naver.net/MjAxNzA1MjRfMTk2/MDAxNDk1NjE2MDk1MzM2.LGcu7TPbtAENfllUrfw7Ha14Divwdby2uz8HUWxwn50g.1viqje3xxfZqZFybaE2G5DvFBEiTFOeoFoG-gXdnMxgg.PNG.juihy1005/ball3.png?type=w2">
+<img id = "ou1" src="http://postfiles2.naver.net/MjAxNzA1MjRfMjU1/MDAxNDk1NjE2MDk1NjAx.L66zz5l1rZHZ-H_Nkx0UTYo7b4IAGKVXcc1PBzkbyxcg.1xe627aKoWk9Dn81cF9CMlXoUVqllOcjENK7PjxHTXsg.PNG.juihy1005/ball3c.png?type=w2">
+<img id = "ou2" src="http://postfiles2.naver.net/MjAxNzA1MjRfMjU1/MDAxNDk1NjE2MDk1NjAx.L66zz5l1rZHZ-H_Nkx0UTYo7b4IAGKVXcc1PBzkbyxcg.1xe627aKoWk9Dn81cF9CMlXoUVqllOcjENK7PjxHTXsg.PNG.juihy1005/ball3c.png?type=w2" >
+<img id = "ou3" src="http://postfiles2.naver.net/MjAxNzA1MjRfMjU1/MDAxNDk1NjE2MDk1NjAx.L66zz5l1rZHZ-H_Nkx0UTYo7b4IAGKVXcc1PBzkbyxcg.1xe627aKoWk9Dn81cF9CMlXoUVqllOcjENK7PjxHTXsg.PNG.juihy1005/ball3c.png?type=w2">
+</div>
+
+<form action ="base2.htm" id="inp" name ="inp" onsubmit="numberBase()">
+<input type ="number" name="number">
+<input type ="button" onclick =numberBase() value="INPUT">
+</form>
+<a id ="start" style ="display : none; color : red ; font-weight : bold; font-size : 40px; text-decoration : none; position : absolute; top : 48%;left : 30%;" href="base2.htm">CLICK AND NEW START</a>
+
+<script>
+
+
+
+	var ballcount=0;
+	var strikecount=0;
+	var outcount=0 ;
+	var outcount_1=0;
+
+
+var i,j;
+var base = [] ;
+
+
+for(i=0;i<4;i++)
+	         {
+	            base[i] = Math.floor(Math.random()*10);
+				for( j=0; j<i; j++)
+	            {
+	               if(i!=j)
+	               {
+	                  if(base[i] == base[j])
+	                  {
+							i--;
+							break;
+	                  }
+	               }
+	            }
+         }
+
+
+var a = base[0];
+var b = base[1];
+var c = base[2];
+var d = base[3];
+
+
+
+function numberBase(){
+
+
+	var val = document.forms["inp"]["number"].value;
+	var nPlayer =[];
+	nPlayer[0] = parseInt(val/1000);
+	nPlayer[1]=parseInt((val-nPlayer[0]*1000)/100);
+	nPlayer[2]=parseInt((val-nPlayer[0]*1000-nPlayer[1]*100)/10);
+	nPlayer[3]=parseInt(val%10);
+
+	var nCount= [];
+	nCount[0] =a;
+	nCount[1]=b;
+	nCount[2]=c;
+	nCount[3]=d;
+
+
+		 ballcount=0;
+		 strikecount=0;
+		 outcount=0 ;
+		 outcount_1=0;
+
+
+		
+				document.getElementById("st1").innerHTML = " ";
+				document.getElementById("st2").innerHTML = " ";
+				document.getElementById("st3").innerHTML = " ";
+				document.getElementById("st4").innerHTML = " ";
+
+		for(i=0;i<4;i++)
+			{
+				for(j=0; j<4; j++)
+				{
+					if(i == j)
+					{
+						if(nCount[i] == nPlayer[j])	
+							strikecount++;
+						else
+							outcount++;
+					}
+					else if(i != j)
+					{
+						if(nCount[i] == nPlayer[j])	
+							ballcount++;
+						else
+							outcount++;
+					}
+				}
+			}
+
+			if(outcount == 16)
+			{outcount_1 = outcount_1+1;}
+
+
+
+
+
+			if(strikecount ==0 && ballcount==1){
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+			else if(strikecount ==0 && ballcount==2){
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+			else if(strikecount ==0 && ballcount==3){
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="inline";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+			else if(strikecount ==0 && ballcount==4){
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="inline";
+				document.getElementById("ba4").style.display ="inline";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+
+			else if(strikecount ==1 && ballcount==0){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+
+			else if(strikecount ==1 && ballcount==1){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+
+			else if(strikecount ==1 && ballcount==2){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+
+			else if(strikecount ==1 && ballcount==3){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="inline";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+				}
+
+			else if(strikecount==2 && ballcount ==0){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+			}
+			else if(strikecount==2 && ballcount ==1){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+			}
+
+		else if(strikecount==2 && ballcount ==2){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="inline";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+
+			}
+			else if(strikecount==3 && ballcount ==0){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="inline";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+			}
+			else if(strikecount==3 && ballcount ==1){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="inline";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="inline";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+			}
+			else if(strikecount==4){
+				document.getElementById("st1").style.display ="inline";
+				document.getElementById("st2").style.display ="inline";
+				document.getElementById("st3").style.display ="inline";
+				document.getElementById("st4").style.display ="inline";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+				document.getElementById("ou1").style.display ="none";
+
+			}
+
+
+
+			if(outcount_1 ==1){
+				document.getElementById("ou1").style.display ="inline";
+				document.getElementById("ou2").style.display ="none";
+				document.getElementById("ou3").style.display ="none";
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+			}
+
+					if(strikecount ==4 ){
+					
+					document.getElementById("qusetion1").innerHTML =nCount[0];
+					document.getElementById("qusetion2").innerHTML =nCount[1];
+					document.getElementById("qusetion3").innerHTML =nCount[2];
+					document.getElementById("qusetion4").innerHTML =nCount[3];
+
+					if (confirm("QUIT GAME AND RETURN MAIN?") == true){  
+				 window.location.href="main.html";
+			}
+			else
+			{		
+				document.getElementById("qusetion1").innerHTML="?";
+				document.getElementById("qusetion2").innerHTML="?";
+				document.getElementById("qusetion3").innerHTML="?";
+				document.getElementById("qusetion4").innerHTML="?";
+
+				ballcount=0;
+				strikecount=0;
+				outcount=0 ;
+				outcount_1=0;
+
+
+				document.getElementById("ou1").style.display ="none";
+				document.getElementById("ou2").style.display ="none";
+				document.getElementById("ou3").style.display ="none";
+				document.getElementById("st1").style.display ="none";
+				document.getElementById("st2").style.display ="none";
+				document.getElementById("st3").style.display ="none";
+				document.getElementById("st4").style.display ="none";
+				document.getElementById("ba1").style.display ="none";
+				document.getElementById("ba2").style.display ="none";
+				document.getElementById("ba3").style.display ="none";
+				document.getElementById("ba4").style.display ="none";
+
+				document.getElementById("start").style.display ="inline";
+	
+			 return;
+			}	
+			}
+
+}
+
+
+
+
+
+</script>
+
+</body>
+</html>
